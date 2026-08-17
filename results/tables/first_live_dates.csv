@@ -1,0 +1,10 @@
+fund_family,method,method_type,first_live_date,estimation_window,periods_per_year
+Combined,Equal Weight,benchmark,2021-01-04,252,252
+Combined,Maximum Sharpe,optimisation,2021-01-04,252,252
+Combined,Minimum Variance,optimisation,2021-01-04,252,252
+Crypto-only,Equal Weight,benchmark,2021-01-01,365,365
+Crypto-only,Maximum Sharpe,optimisation,2021-01-01,365,365
+Crypto-only,Minimum Variance,optimisation,2021-01-01,365,365
+Equity-only,Equal Weight,benchmark,2021-01-04,252,252
+Equity-only,Maximum Sharpe,optimisation,2021-01-04,252,252
+Equity-only,Minimum Variance,optimisation,2021-01-04,252,252

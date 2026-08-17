@@ -1,0 +1,79 @@
+case_type,description,date,sector,sector_sentiment,headline_count,active_ticker_share,ticker_headline_share_hhi,cross_ticker_sentiment_std,dominant_ticker,dominant_ticker_headline_share
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2020-07-24,Tech,0.19541746031746032,44,0.6,0.521694214876033,0.37289206527245855,INTC,0.6363636363636364
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2023-01-26,Energy,0.21641891025641025,39,0.6,0.4924391847468771,0.09521336599016972,CVX,0.6153846153846154
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2023-01-31,Industrials,0.1957298039215686,39,0.6,0.45562130177514787,0.07537887490848005,CAT,0.5128205128205128
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2020-07-06,Utilities,0.23985845410628018,37,0.6,0.4945215485756026,0.1285561760304621,D,0.6216216216216216
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2021-11-18,Tech,0.0751326765188834,37,0.6,0.6508400292184076,0.07433471002563141,NVDA,0.7837837837837838
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2020-07-31,Energy,-0.027899523809523805,36,0.4,0.513888888888889,0.002895097192686643,CVX,0.5833333333333334
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2020-07-31,Healthcare,0.07349145299145299,35,0.6,0.3420408163265306,0.043860813588680374,GILD,0.37142857142857144
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2021-08-17,Consumer,0.06253759259259259,32,0.6,0.4296875,0.05733613646876295,WMT,0.5625
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2023-04-20,Comm,0.012538034188034187,32,0.6,0.677734375,0.015491626565487955,T,0.8125
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2020-04-17,Industrials,0.05769646464646464,31,0.6,0.5504682622268471,0.2218765474542622,BA,0.7096774193548387
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2020-03-13,Consumer,0.05966203703703704,31,0.6,0.43808532778355885,0.15355372426984606,DIS,0.5806451612903226
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2020-11-13,Consumer,0.2118008281573499,31,0.6,0.6024973985431843,0.13065347440741232,DIS,0.7419354838709677
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2023-10-11,Energy,0.15029589371980676,31,0.6,0.5920915712799169,0.12566274040441314,XOM,0.7419354838709677
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2021-07-27,Industrials,0.09802751322751323,31,0.6,0.36940686784599375,0.09218342851703493,GE,0.4838709677419355
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2020-05-20,Healthcare,0.0244421855921856,30,0.6,0.41555555555555557,0.20778105470466723,MRK,0.4666666666666667
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2021-07-27,Tech,0.02640319865319865,30,0.6,0.3355555555555555,0.09914353756445832,AMD,0.36666666666666664
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2021-01-11,Financials,0.011525845410628026,30,0.6,0.6288888888888889,0.05882515092005584,WFC,0.7666666666666667
+high_volume_low_breadth,headline volume is high but active-ticker breadth is low,2020-06-29,Industrials,0.22736607142857143,30,0.4,0.8755555555555556,0.027695857390260238,BA,0.9333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2020-04-01,Tech,0.11331000000000002,6,1.0,0.2222222222222222,0.4680926062223158,NVDA,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2021-09-24,Financials,0.1464,6,1.0,0.2222222222222222,0.4504968312874132,V,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2022-07-01,RealEstate,0.09706,6,1.0,0.2222222222222222,0.3157494703083443,AMT,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2021-04-08,Energy,0.07392,6,1.0,0.2222222222222222,0.31111919259344967,CVX,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2020-12-21,Healthcare,0.27162,6,1.0,0.2222222222222222,0.2833843185499155,GILD,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2022-07-11,Materials,-0.018499999999999996,6,1.0,0.22222222222222227,0.27499985454541603,NUE,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2022-08-04,Materials,0.04609,6,1.0,0.2222222222222222,0.2719800737186458,NEM,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2022-11-11,Utilities,0.11735999999999999,6,1.0,0.2222222222222222,0.26242493783937526,AEP,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2023-02-03,Comm,0.18137,6,1.0,0.2222222222222222,0.2485218189616356,T,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2021-08-17,Healthcare,0.25926,6,1.0,0.2222222222222222,0.24481663137948775,ABBV,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2022-06-17,Utilities,0.1525,6,1.0,0.2222222222222222,0.23785293775776664,D,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2022-06-30,Utilities,0.14246,6,1.0,0.2222222222222222,0.23532691728741953,SO,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2020-01-09,Comm,0.16018,6,1.0,0.22222222222222227,0.2314367343357575,CMCSA,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2022-10-04,Comm,0.11383999999999998,6,1.0,0.22222222222222227,0.228621407571557,CMCSA,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2021-04-15,Energy,0.0017400000000000083,6,1.0,0.2222222222222222,0.22803701015405373,OXY,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2023-09-11,Materials,0.16076,6,1.0,0.2222222222222222,0.22012969586132625,DOW,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2023-09-06,Materials,0.12696000000000002,6,1.0,0.2222222222222222,0.2026973310135089,DOW,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2021-10-11,Materials,0.1889,6,1.0,0.2222222222222222,0.19687592539465054,SHW,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2020-06-03,RealEstate,0.0872,6,1.0,0.2222222222222222,0.19498512763798165,O,0.3333333333333333
+low_volume_broad_evidence,headline volume is low but evidence is broad across constituents,2020-07-29,RealEstate,0.10452999999999998,6,1.0,0.2222222222222222,0.1825246339538858,PLD,0.3333333333333333
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2021-11-05,Healthcare,0.35311111111111115,21,0.6,0.746031746031746,0.1526733807960762,MRK,0.8571428571428571
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2020-09-30,Utilities,0.35623999999999995,21,0.6,0.45578231292517,0.12737436633797242,DUK,0.47619047619047616
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2021-01-29,Energy,-0.33050277777777776,19,0.6,0.4681440443213296,0.2566165159788983,CVX,0.631578947368421
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2020-06-19,Energy,0.31598174603174606,17,0.6,0.3494809688581315,0.14029267723347633,OXY,0.4117647058823529
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2021-05-13,Consumer,0.3798066666666666,16,0.6,0.4921875,0.3337816054448377,DIS,0.625
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2022-01-20,Comm,0.42268585858585855,15,0.6,0.5822222222222222,0.2094808742118116,T,0.7333333333333333
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2023-07-06,Healthcare,0.3386541666666667,13,0.6,0.455621301775148,0.1481478950308891,ABBV,0.6153846153846154
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2020-11-04,Healthcare,0.3139296296296296,13,0.6,0.5266272189349112,0.11417338238335571,MRK,0.6923076923076923
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2020-03-27,Utilities,0.4932744444444445,12,0.6,0.3472222222222222,0.210806104337436,DUK,0.4166666666666667
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2021-08-26,Tech,0.313285,12,0.6,0.3472222222222222,0.15489229540232138,INTC,0.4166666666666667
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2021-03-26,Energy,0.33000388888888893,12,0.6,0.3472222222222222,0.0426616343494992,OXY,0.4166666666666667
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2021-06-01,Comm,0.38727,11,0.4,0.8347107438016528,0.33605956882671856,T,0.9090909090909091
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2023-10-27,Utilities,0.3041682539682539,11,0.6,0.48760330578512395,0.16152305209091647,NEE,0.6363636363636364
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2020-08-06,Healthcare,0.30344166666666667,11,0.6,0.371900826446281,0.1450019619120146,MRK,0.45454545454545453
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2020-12-28,Comm,0.30003749999999996,10,0.6,0.6600000000000001,0.3206594501472707,T,0.8
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2021-11-17,Healthcare,0.30110833333333337,10,0.6,0.34,0.09169255808588467,ABBV,0.4
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2020-02-21,Utilities,0.39232,10,0.4,0.5,0.0,D,0.5
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2022-06-08,Comm,0.31982,9,0.6,0.4320987654320988,0.3552195957432529,CMCSA,0.5555555555555556
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2020-10-23,Comm,0.3454375,9,0.4,0.8024691358024691,0.34006532874214035,T,0.8888888888888888
+extreme_sentiment_few_tickers,average sentiment is extreme but driven by few tickers,2022-05-19,Industrials,0.3299611111111111,9,0.6,0.5061728395061729,0.3391378498541614,BA,0.6666666666666666
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2020-05-04,Healthcare,0.051395128205128204,51,1.0,0.60399846212995,0.32057949227381216,GILD,0.7647058823529411
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2020-04-13,Healthcare,-0.004051999999999989,50,1.0,0.4224,0.3860930814482723,GILD,0.6
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2022-12-21,Consumer,-0.06510560606060607,46,1.0,0.5415879017013232,0.3060456984272552,NKE,0.717391304347826
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2020-05-19,Consumer,-0.07248620512820514,44,1.0,0.4204545454545455,0.41534511575587557,WMT,0.5909090909090909
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2022-08-02,Tech,-0.04006928571428571,44,1.0,0.3130165289256198,0.3012100394931084,AMD,0.4772727272727273
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2022-03-21,Industrials,0.030477999999999995,42,1.0,0.5385487528344671,0.36320747258587927,BA,0.7142857142857143
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2020-04-28,Tech,0.08751825396825397,35,0.8,0.37142857142857133,0.3096453975635684,AMD,0.5142857142857142
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2023-11-24,Consumer,-0.06559355555555554,34,1.0,0.24913494809688586,0.38405133703615624,KO,0.29411764705882354
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2022-08-19,Consumer,0.03893066666666667,31,1.0,0.29656607700312176,0.34062827165727483,WMT,0.3870967741935484
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2022-03-03,Energy,0.06556373626373627,31,1.0,0.2882414151925078,0.315174722875265,XOM,0.41935483870967744
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2023-02-09,Healthcare,0.008086142857142865,29,1.0,0.35077288941736035,0.3168592406271534,ABBV,0.5172413793103449
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2023-07-20,Healthcare,0.005414999999999992,29,1.0,0.42925089179548154,0.30347870271239796,ABT,0.6206896551724138
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2020-03-16,Comm,-0.015389166666666676,28,0.8,0.3239795918367347,0.31747737946103255,CMCSA,0.42857142857142855
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2020-02-11,Consumer,0.04548616666666667,28,1.0,0.3826530612244898,0.3131312168353797,DIS,0.5714285714285714
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2020-06-11,Energy,-0.098045,27,1.0,0.30315500685871055,0.3392209543776576,XOM,0.4444444444444444
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2021-09-09,Comm,-0.07891285714285715,26,1.0,0.29585798816568043,0.3484063422154057,TTWO,0.38461538461538464
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2020-09-18,Consumer,0.002136298701298711,26,1.0,0.2869822485207101,0.32075666646207324,WMT,0.4230769230769231
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2020-06-08,Industrials,0.07758941176470587,25,1.0,0.4912000000000001,0.3448207227744169,BA,0.68
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2021-03-01,Industrials,-0.04041875,25,1.0,0.4592,0.30192435291445524,BA,0.64
+moderate_sentiment_high_disagreement,average sentiment is moderate despite strong disagreement,2021-12-27,Consumer,0.060158333333333314,24,1.0,0.2673611111111111,0.4692681576227824,DIS,0.3333333333333333

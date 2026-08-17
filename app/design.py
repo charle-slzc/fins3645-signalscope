@@ -158,6 +158,113 @@ def css() -> str:
   font-size: 1rem;
   line-height: 1.55;
 }
+.ss-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+  margin: 0.8rem 0 1rem;
+}
+.ss-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin: 1rem 0 1.1rem;
+}
+.ss-kpi {
+  padding: 0.85rem;
+  border: 1px solid var(--ss-line);
+  border-radius: 8px;
+  background: var(--ss-panel);
+  box-shadow: var(--ss-shadow);
+}
+.ss-kpi-label {
+  margin: 0;
+  color: var(--ss-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.ss-kpi-value {
+  margin: 0.22rem 0 0;
+  color: var(--ss-ink);
+  font-size: 1.45rem;
+  font-weight: 760;
+  line-height: 1.05;
+}
+.ss-kpi-help {
+  margin: 0.25rem 0 0;
+  color: var(--ss-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+.ss-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0.7rem 0 1rem;
+}
+.ss-mini {
+  padding: 0.75rem;
+  border: 1px solid var(--ss-line);
+  border-radius: 8px;
+  background: var(--ss-panel);
+}
+.ss-mini strong {
+  display: block;
+  color: var(--ss-ink);
+  font-size: 1.1rem;
+}
+.ss-mini span {
+  display: block;
+  color: var(--ss-muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+.ss-caveat {
+  padding: 0.75rem 0.85rem;
+  border-left: 4px solid var(--ss-evidence);
+  border-radius: 8px;
+  background: #fbfaf2;
+  color: var(--ss-ink);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.ss-warning {
+  padding: 0.75rem 0.85rem;
+  border-left: 4px solid var(--ss-negative);
+  border-radius: 8px;
+  background: #fff7f6;
+  color: var(--ss-ink);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.ss-method-badge {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0.45rem 0.45rem 0;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid var(--ss-line);
+  border-radius: 999px;
+  background: var(--ss-panel);
+  color: var(--ss-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.ss-fund-row {
+  display: grid;
+  grid-template-columns: minmax(11rem, 1.2fr) repeat(5, minmax(5.5rem, 0.8fr));
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--ss-line);
+  color: var(--ss-ink);
+  font-size: 0.88rem;
+}
+.ss-fund-row span {
+  color: var(--ss-muted);
+}
 @media (max-width: 760px) {
   .ss-structure-grid {
     grid-template-columns: 1fr;
@@ -172,6 +279,20 @@ def css() -> str:
     width: 100%;
     justify-content: center;
   }
+  .ss-kpi-grid,
+  .ss-mini-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ss-fund-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 520px) {
+  .ss-kpi-grid,
+  .ss-mini-grid,
+  .ss-fund-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
 """
@@ -179,4 +300,3 @@ def css() -> str:
 
 def truth_label_html(label: str) -> str:
     return f'<span class="ss-truth-label">{label}</span>'
-

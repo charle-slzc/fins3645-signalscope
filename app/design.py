@@ -743,6 +743,212 @@ button[kind="secondary"] {
   color: var(--ss-text-primary);
   background: rgba(200, 169, 79, 0.12);
 }
+.ss-decision-status {
+  margin: 0.75rem 0;
+  padding: 0.72rem 0;
+  border-top: 1px solid var(--ss-border);
+  border-bottom: 1px solid var(--ss-border);
+  color: var(--ss-text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.ss-decision-status strong {
+  color: var(--ss-text-primary);
+  font-size: 1.05rem;
+}
+.ss-structure-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0.35rem 0 0.8rem;
+  padding: 0.78rem 0;
+  border-top: 1px solid var(--ss-border);
+  border-bottom: 1px solid var(--ss-border);
+}
+.ss-structure-summary div {
+  min-height: 3.8rem;
+  padding: 0.35rem 0.45rem;
+}
+.ss-structure-summary span {
+  display: block;
+  color: var(--ss-text-tertiary);
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.ss-structure-summary strong {
+  display: block;
+  margin-top: 0.18rem;
+  color: var(--ss-text-primary);
+  font-size: 1.05rem;
+  line-height: 1.16;
+}
+.ss-decision-narrative {
+  margin: 0.65rem 0 0.9rem;
+  padding: 0.82rem 0.95rem;
+  border: 1px solid var(--ss-border);
+  border-left: 4px solid var(--ss-control);
+  border-radius: var(--ss-radius);
+  background: var(--ss-surface-deep);
+  color: var(--ss-text-primary);
+  font-size: 0.96rem;
+  line-height: 1.46;
+}
+.ss-thesis-bridge {
+  margin: 0.55rem 0 0.9rem;
+  padding: 0.62rem 0;
+  border-top: 1px solid var(--ss-border);
+  border-bottom: 1px solid var(--ss-border);
+}
+.ss-thesis-bridge strong {
+  display: block;
+  color: var(--ss-text-primary);
+  font-size: 0.82rem;
+  font-weight: 790;
+  letter-spacing: 0;
+}
+.ss-thesis-bridge span {
+  display: block;
+  margin-top: 0.16rem;
+  color: var(--ss-text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+.ss-anatomy-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: center;
+  margin: 0.5rem 0 1rem;
+  color: var(--ss-text-tertiary);
+  font-size: 0.74rem;
+  font-weight: 760;
+}
+.ss-anatomy-flow div {
+  position: relative;
+  min-height: 4.15rem;
+  padding: 0.68rem 0.75rem;
+  border-top: 1px solid var(--ss-border);
+  border-bottom: 1px solid var(--ss-border);
+  background: rgba(22, 34, 30, 0.5);
+}
+.ss-anatomy-flow strong,
+.ss-anatomy-flow span {
+  display: block;
+}
+.ss-anatomy-flow strong {
+  color: var(--ss-text-primary);
+  font-size: 0.78rem;
+}
+.ss-anatomy-flow span {
+  margin-top: 0.18rem;
+  color: var(--ss-text-tertiary);
+  font-size: 0.74rem;
+  line-height: 1.3;
+}
+.ss-anatomy-flow i {
+  display: block;
+  width: 5.2rem;
+  color: var(--ss-control);
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 760;
+  text-align: center;
+}
+.ss-anatomy-flow i::before,
+.ss-anatomy-flow i::after {
+  content: "";
+  display: block;
+  height: 1px;
+  margin: 0.18rem 0;
+  background: var(--ss-border);
+}
+.ss-decision-strip {
+  display: flex;
+  min-height: 4.25rem;
+  width: 100%;
+  overflow: hidden;
+  margin: 0.35rem 0 0.55rem;
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+  background: var(--ss-surface-deep);
+}
+.ss-decision-segment {
+  display: flex;
+  min-width: 4.6rem;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.12rem;
+  padding: 0.48rem 0.58rem;
+  border-right: 1px solid rgba(13, 20, 18, 0.55);
+  color: var(--ss-text-primary);
+}
+.ss-decision-segment:last-child {
+  border-right: 0;
+}
+.ss-decision-segment span {
+  overflow-wrap: anywhere;
+  font-size: 0.73rem;
+  font-weight: 690;
+  line-height: 1.16;
+}
+.ss-decision-segment strong {
+  font-size: 1rem;
+  line-height: 1.05;
+}
+.ss-decision-cat-0 {
+  background: #5f6e68;
+}
+.ss-decision-cat-1 {
+  background: #72695f;
+}
+.ss-decision-cat-2 {
+  background: #596d70;
+}
+.ss-decision-cat-3 {
+  background: #6d6470;
+}
+.ss-asset-equity {
+  background: #64786d;
+}
+.ss-asset-crypto {
+  background: #7a6d5c;
+}
+.ss-remainder-note {
+  margin: 0.4rem 0 0.6rem;
+  padding: 0.62rem 0.75rem;
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+  background: var(--ss-surface-alt);
+  color: var(--ss-text-secondary);
+}
+.ss-remainder-note strong,
+.ss-remainder-note span {
+  display: block;
+}
+.ss-remainder-note strong {
+  color: var(--ss-text-primary);
+  font-size: 0.9rem;
+}
+.ss-remainder-note span {
+  margin-top: 0.1rem;
+  font-size: 0.82rem;
+  line-height: 1.36;
+}
+.ss-overlap-insight {
+  margin: 0.45rem 0 0.8rem;
+  padding: 0.78rem 0.88rem;
+  border: 1px solid var(--ss-border);
+  border-left: 4px solid var(--ss-control);
+  border-radius: var(--ss-radius);
+  background: rgba(143, 154, 150, 0.1);
+  color: var(--ss-text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.ss-overlap-insight strong {
+  color: var(--ss-text-primary);
+}
 @media (max-width: 760px) {
   .block-container {
     padding-left: 1rem;
@@ -764,9 +970,15 @@ button[kind="secondary"] {
   .ss-relative-line,
   .ss-holdings-grid,
   .ss-lens-step,
-  .ss-case-row {
+  .ss-case-row,
+  .ss-structure-summary,
+  .ss-anatomy-flow {
     grid-template-columns: 1fr;
     gap: 0.25rem;
+  }
+  .ss-anatomy-flow i {
+    width: 100%;
+    margin: 0.2rem 0;
   }
 }
 @media (max-width: 520px) {

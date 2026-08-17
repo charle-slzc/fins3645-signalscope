@@ -20,6 +20,9 @@ METHOD_SHAPES = {
     "Maximum Sharpe": "triangle-up",
 }
 
+DECISION_HOLDINGS_COLOR = "#6b7772"
+DECISION_OVERLAP_COLOR = "#77827d"
+
 FUND_SELECTION_NAME = "fund_pick"
 SIGNAL_SELECTION_NAME = "signal_date_pick"
 
@@ -668,5 +671,110 @@ def constituent_axis_spec() -> dict:
                 },
             },
         ],
+        "config": chart_config(),
+    }
+
+
+def decision_holdings_spec() -> dict:
+    return {
+        "background": "transparent",
+        "height": 310,
+        "mark": {"type": "bar", "cornerRadiusEnd": 3, "color": DECISION_HOLDINGS_COLOR},
+        "encoding": {
+            "x": {
+                "field": "lookthrough_weight",
+                "type": "quantitative",
+                "title": "Look-through capital weight",
+                "axis": {
+                    "format": ".1%",
+                    "tickCount": 5,
+                    "grid": True,
+                    "gridColor": "#263831",
+                    "labelColor": COLORS["text_secondary"],
+                    "titleColor": COLORS["text_primary"],
+                },
+            },
+            "y": {
+                "field": "asset",
+                "type": "nominal",
+                "title": None,
+                "sort": "-x",
+                "axis": {"labelLimit": 150, "labelColor": COLORS["text_secondary"]},
+            },
+            "tooltip": [
+                {"field": "asset", "type": "nominal", "title": "Underlying holding"},
+                {"field": "asset_class", "type": "nominal", "title": "Asset class"},
+                {"field": "lookthrough_weight", "type": "quantitative", "title": "Look-through weight", "format": ".2%"},
+            ],
+        },
+        "config": chart_config(),
+    }
+
+
+def decision_overlap_spec() -> dict:
+    return {
+        "background": "transparent",
+        "height": 180,
+        "mark": {"type": "bar", "cornerRadiusEnd": 3, "color": DECISION_OVERLAP_COLOR},
+        "encoding": {
+            "x": {
+                "field": "overlap",
+                "type": "quantitative",
+                "title": "Latest holdings overlap",
+                "axis": {
+                    "format": ".0%",
+                    "tickCount": 5,
+                    "grid": True,
+                    "gridColor": "#263831",
+                    "labelColor": COLORS["text_secondary"],
+                    "titleColor": COLORS["text_primary"],
+                },
+            },
+            "y": {
+                "field": "pair",
+                "type": "nominal",
+                "title": None,
+                "sort": "-x",
+                "axis": {"labelLimit": 230, "labelColor": COLORS["text_secondary"]},
+            },
+            "tooltip": [
+                {"field": "fund_a", "type": "nominal", "title": "Fund A"},
+                {"field": "fund_b", "type": "nominal", "title": "Fund B"},
+                {"field": "overlap", "type": "quantitative", "title": "Holdings overlap", "format": ".1%"},
+            ],
+        },
+        "config": chart_config(),
+    }
+
+
+def decision_method_exposure_spec() -> dict:
+    return {
+        "background": "transparent",
+        "height": 72,
+        "mark": {"type": "bar", "cornerRadius": 4, "color": COLORS["control"]},
+        "encoding": {
+            "x": {
+                "field": "capital_weight",
+                "type": "quantitative",
+                "stack": "normalize",
+                "title": None,
+                "axis": None,
+            },
+            "y": {"value": 28},
+            "color": {
+                "field": "method",
+                "type": "nominal",
+                "title": None,
+                "scale": {
+                    "domain": list(METHOD_ORDER),
+                    "range": ["#7b8580", "#706f66", "#66757a"],
+                },
+                "legend": {"orient": "bottom", "title": None},
+            },
+            "tooltip": [
+                {"field": "method", "type": "nominal", "title": "Construction method"},
+                {"field": "capital_weight", "type": "quantitative", "title": "Capital allocation", "format": ".1%"},
+            ],
+        },
         "config": chart_config(),
     }

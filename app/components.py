@@ -8,6 +8,7 @@ import streamlit as st
 
 from app import charts
 from app import design
+from app.decision import render_decision_page
 from app.evidence import render_evidence_page
 from app.signal import render_signal_page
 from app.data import ArtifactValidationError, StartupArtifacts
@@ -562,12 +563,7 @@ def render_active_stage(stage: str, artifacts: StartupArtifacts) -> None:
     elif stage == "Evidence":
         render_evidence_page(artifacts)
     elif stage == "Decision":
-        render_future_stage(
-            "Decision",
-            "What allocation would I choose, and how would it have behaved historically?",
-            "Phase 4D",
-            "The foundation has fund return and weight artifacts ready for precomputed historical blends without new optimisation.",
-        )
+        render_decision_page(artifacts)
     elif stage == "Challenge":
         render_future_stage(
             "Challenge",

@@ -1,0 +1,182 @@
+"""SignalScope visual design tokens and Streamlit CSS."""
+
+from __future__ import annotations
+
+
+APP_TITLE = "SignalScope"
+CORE_LINE = "See the signal. Inspect the evidence."
+VALUE_PROPOSITION = (
+    "Compare nine systematic funds, inspect risk and holdings, then test whether "
+    "news sentiment deserves trust."
+)
+
+TRUTH_LABELS = (
+    "Historical OOS backtest",
+    "Sentiment did not beat Base",
+    "No forecast or investment advice",
+)
+
+COLORS = {
+    "ink": "#17211d",
+    "muted": "#5f6d66",
+    "paper": "#f7f8f5",
+    "panel": "#ffffff",
+    "line": "#d8ded7",
+    "positive": "#1f7a5c",
+    "negative": "#ad3f3f",
+    "signal": "#2c6f8f",
+    "evidence": "#7b6d2e",
+    "control": "#71797a",
+}
+
+
+def css() -> str:
+    return """
+<style>
+:root {
+  --ss-ink: #17211d;
+  --ss-muted: #5f6d66;
+  --ss-paper: #f7f8f5;
+  --ss-panel: #ffffff;
+  --ss-line: #d8ded7;
+  --ss-positive: #1f7a5c;
+  --ss-negative: #ad3f3f;
+  --ss-signal: #2c6f8f;
+  --ss-evidence: #7b6d2e;
+  --ss-control: #71797a;
+  --ss-shadow: 0 1px 2px rgba(23, 33, 29, 0.06);
+}
+.signalscope-shell {
+  color: var(--ss-ink);
+}
+.ss-kicker {
+  margin: 0 0 0.35rem;
+  color: var(--ss-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.ss-hero-title {
+  margin: 0;
+  color: var(--ss-ink);
+  font-size: clamp(2.4rem, 7vw, 4.6rem);
+  line-height: 0.98;
+  font-weight: 760;
+  letter-spacing: 0;
+}
+.ss-hero-line {
+  margin: 0.75rem 0 0;
+  color: var(--ss-signal);
+  font-size: clamp(1.15rem, 2.4vw, 1.55rem);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.ss-value {
+  max-width: 58rem;
+  margin: 0.85rem 0 0;
+  color: var(--ss-muted);
+  font-size: 1.06rem;
+  line-height: 1.55;
+}
+.ss-label-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 1.2rem 0 1.4rem;
+}
+.ss-truth-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--ss-line);
+  border-radius: 999px;
+  background: var(--ss-panel);
+  color: var(--ss-ink);
+  font-size: 0.88rem;
+  box-shadow: var(--ss-shadow);
+}
+.ss-panel {
+  min-height: 11rem;
+  padding: 1.1rem;
+  border: 1px solid var(--ss-line);
+  border-radius: 8px;
+  background: var(--ss-panel);
+  box-shadow: var(--ss-shadow);
+}
+.ss-panel h3 {
+  margin: 0 0 0.45rem;
+  color: var(--ss-ink);
+  font-size: 1.05rem;
+  letter-spacing: 0;
+}
+.ss-panel p {
+  margin: 0;
+  color: var(--ss-muted);
+  line-height: 1.5;
+}
+.ss-structure-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.ss-signal-bar,
+.ss-evidence-bar,
+.ss-control-bar {
+  height: 0.45rem;
+  border-radius: 999px;
+  margin: 0.9rem 0 0.3rem;
+}
+.ss-signal-bar {
+  background: linear-gradient(90deg, var(--ss-negative), #edf0ed, var(--ss-positive));
+}
+.ss-evidence-bar {
+  background: linear-gradient(90deg, #ece7cf, var(--ss-evidence));
+}
+.ss-control-bar {
+  background: linear-gradient(90deg, #e8ebea, var(--ss-control));
+}
+.ss-small {
+  color: var(--ss-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+.ss-stage-title {
+  margin: 0.4rem 0 0.3rem;
+  color: var(--ss-ink);
+  font-size: clamp(1.6rem, 4vw, 2.35rem);
+  line-height: 1.1;
+  font-weight: 740;
+  letter-spacing: 0;
+}
+.ss-stage-copy {
+  max-width: 52rem;
+  margin: 0 0 1rem;
+  color: var(--ss-muted);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+@media (max-width: 760px) {
+  .ss-structure-grid {
+    grid-template-columns: 1fr;
+  }
+  .ss-panel {
+    min-height: auto;
+  }
+  .ss-label-row {
+    gap: 0.45rem;
+  }
+  .ss-truth-label {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>
+"""
+
+
+def truth_label_html(label: str) -> str:
+    return f'<span class="ss-truth-label">{label}</span>'
+

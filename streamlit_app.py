@@ -1,44 +1,45 @@
-"""FinTech Project - your investment app (starter).
+"""SignalScope Streamlit entrypoint.
 
-This thin starter proves the app deploys and loads the hosted data. Build your real
-dashboard on top of it: a fund picker, each fund's fact sheet (growth of $1,
-drawdown, Sharpe, holdings), an allocation control, and your sentiment analytics.
-
-Run locally:   streamlit run streamlit_app.py
-Deploy:        push this folder to a public GitHub repo, then connect it on
-               share.streamlit.io with entrypoint streamlit_app.py (see brief App. D).
+Run locally:
+    streamlit run streamlit_app.py
 """
+
+from __future__ import annotations
+
 import sys
-import pathlib
+from pathlib import Path
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import streamlit as st
 
-import streamlit as st  # noqa: E402
+PROJECT_ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
-from src import data_access  # noqa: E402
-
-st.set_page_config(page_title="Systematic Funds", layout="wide")
-st.title("Systematic Multi-Asset Funds")
-st.caption("Starter app - replace this with your fund dashboard.")
-
-
-@st.cache_data(ttl=86_400, show_spinner="Loading data...")
-def _equities():
-    return data_access.load_equity_prices()
+from app.components import (  # noqa: E402
+    install_design_system,
+    render_active_stage,
+    render_artifact_error,
+)
+from app.data import ArtifactValidationError, load_startup_artifacts_cached  # noqa: E402
+from app.navigation import render_navigation  # noqa: E402
 
 
-tab_funds, tab_sentiment, tab_data = st.tabs(["Funds", "Sentiment", "Data"])
+def main() -> None:
+    st.set_page_config(
+        page_title="SignalScope",
+        layout="wide",
+        initial_sidebar_state="collapsed",
+    )
+    install_design_system()
 
-with tab_funds:
-    st.subheader("Funds")
-    st.info("TODO: build your fund picker, fact sheets, and allocation control here.")
+    try:
+        artifacts = load_startup_artifacts_cached(str(PROJECT_ROOT))
+    except ArtifactValidationError as exc:
+        render_artifact_error(exc)
+        st.stop()
 
-with tab_sentiment:
-    st.subheader("Sentiment")
-    st.info("TODO: show your sector sentiment indices over time.")
+    stage = render_navigation()
+    render_active_stage(stage, artifacts)
 
-with tab_data:
-    eq = _equities()
-    st.write(f"Equity prices: {eq.shape[0]:,} rows, {eq['ticker'].nunique()} tickers, "
-             f"{eq['date'].min().date()} to {eq['date'].max().date()}")
-    st.dataframe(eq.head(20), width="stretch")
+
+if __name__ == "__main__":
+    main()

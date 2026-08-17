@@ -1,0 +1,2 @@
+"""SignalScope Streamlit application package."""
+

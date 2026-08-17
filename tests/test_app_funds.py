@@ -1,10 +1,13 @@
+import json
 import math
 from pathlib import Path
 
+import altair as alt
 import pandas as pd
 import pytest
 
 from app import funds
+from app import charts
 
 
 def project_root() -> Path:
@@ -23,6 +26,59 @@ def test_available_funds_contains_expected_nine_combinations():
     }
 
 
+def test_family_method_filters_are_composable_and_visible():
+    metrics = pd.read_csv(project_root() / "results/tables/performance_metrics.csv")
+
+    assert len(funds.filter_metrics(metrics, "All", "All")) == 9
+
+    equity = funds.filter_metrics(metrics, "Equity", "All")
+    crypto = funds.filter_metrics(metrics, "Crypto", "All")
+    combined = funds.filter_metrics(metrics, "Combined", "All")
+    assert set(equity["fund_family"]) == {"Equity-only"}
+    assert set(crypto["fund_family"]) == {"Crypto-only"}
+    assert set(combined["fund_family"]) == {"Combined"}
+    assert len(equity) == len(crypto) == len(combined) == 3
+
+    equal_weight = funds.filter_metrics(metrics, "All", "Equal Weight")
+    min_variance = funds.filter_metrics(metrics, "All", "Minimum Variance")
+    max_sharpe = funds.filter_metrics(metrics, "All", "Maximum Sharpe")
+    assert set(equal_weight["method"]) == {"Equal Weight"}
+    assert set(min_variance["method"]) == {"Minimum Variance"}
+    assert set(max_sharpe["method"]) == {"Maximum Sharpe"}
+    assert len(equal_weight) == len(min_variance) == len(max_sharpe) == 3
+
+    single = funds.filter_metrics(metrics, "Combined", "Maximum Sharpe")
+    assert len(single) == 1
+    assert single.iloc[0]["fund_family"] == "Combined"
+    assert single.iloc[0]["method"] == "Maximum Sharpe"
+
+
+def test_chart_input_is_non_empty_for_required_filter_states():
+    metrics = pd.read_csv(project_root() / "results/tables/performance_metrics.csv")
+    cases = [
+        ("All", "All", 9),
+        ("Equity", "All", 3),
+        ("Crypto", "All", 3),
+        ("Combined", "All", 3),
+        ("All", "Equal Weight", 3),
+        ("All", "Minimum Variance", 3),
+        ("All", "Maximum Sharpe", 3),
+        ("Combined", "Maximum Sharpe", 1),
+    ]
+
+    for family_filter, method_filter, expected_rows in cases:
+        filtered = funds.filter_metrics(metrics, family_filter, method_filter)
+        selected = funds.available_funds(filtered)[0]
+        chart_input = funds.comparison_frame(filtered, selected)
+
+        assert len(chart_input) == expected_rows
+        assert chart_input["is_selected"].sum() == 1
+        assert selected.label in set(chart_input["fund_label"])
+        assert {"return_pct", "volatility_pct", "family_label", "method", "fund_key"}.issubset(
+            chart_input.columns
+        )
+
+
 def test_validate_fund_key_accepts_display_family_and_rejects_missing_method():
     metrics = pd.DataFrame(
         {
@@ -36,6 +92,79 @@ def test_validate_fund_key_accepts_display_family_and_rejects_missing_method():
     assert key.label == "Combined / Minimum Variance"
     with pytest.raises(KeyError):
         funds.validate_fund_key(metrics, "Combined", "Maximum Sharpe")
+
+
+def test_comparison_frame_marks_selected_fund_and_stable_key():
+    metrics = pd.DataFrame(
+        {
+            "fund_family": ["Combined", "Combined"],
+            "method": ["Equal Weight", "Maximum Sharpe"],
+            "method_type": ["benchmark", "optimisation"],
+            "net_annualised_return": [0.1, 0.2],
+            "net_annualised_volatility": [0.3, 0.4],
+            "net_max_drawdown": [-0.2, -0.3],
+        }
+    )
+    frame = funds.comparison_frame(metrics, funds.FundKey("Combined", "Maximum Sharpe"))
+
+    assert frame["fund_key"].tolist() == ["Combined|Equal Weight", "Combined|Maximum Sharpe"]
+    assert frame["is_selected"].tolist() == [False, True]
+
+
+def test_chart_selection_event_parsing_handles_native_shapes():
+    metrics = pd.DataFrame(
+        {
+            "fund_family": ["Combined", "Crypto-only"],
+            "method": ["Maximum Sharpe", "Equal Weight"],
+        }
+    )
+
+    list_event = {
+        "selection": {
+            "fund_pick": [{"fund_family": "Combined", "method": "Maximum Sharpe"}]
+        }
+    }
+    dict_event = {
+        "selection": {
+            "fund_pick": {"fund_family": ["Crypto-only"], "method": ["Equal Weight"]}
+        }
+    }
+    key_event = {"selection": {"fund_pick": {"fund_key": ["Combined|Maximum Sharpe"]}}}
+
+    assert funds.fund_key_from_selection_event(list_event, metrics).label == (
+        "Combined / Maximum Sharpe"
+    )
+    assert funds.fund_key_from_selection_event(key_event, metrics).label == (
+        "Combined / Maximum Sharpe"
+    )
+    assert funds.fund_key_from_selection_event(dict_event, metrics).label == (
+        "Crypto / Equal Weight"
+    )
+    assert funds.fund_key_from_selection_event({"selection": {"fund_pick": []}}, metrics) is None
+    assert (
+        funds.fund_key_from_selection_event(
+            {"selection": {"fund_pick": [{"fund_family": "Equity-only", "method": "Missing"}]}},
+            metrics,
+        )
+        is None
+    )
+
+
+def test_risk_return_spec_defines_native_selection_and_dark_labels():
+    spec = charts.risk_return_spec()
+
+    json.dumps(spec)
+    alt.Chart.from_dict(spec, validate=True)
+    assert spec["layer"][0]["encoding"]["x"]["field"] == "volatility_pct"
+    assert spec["layer"][0]["encoding"]["y"]["field"] == "return_pct"
+    assert spec["layer"][0]["params"][0]["name"] == charts.FUND_SELECTION_NAME
+    assert spec["layer"][0]["params"][0]["select"]["fields"] == ["fund_key"]
+    assert spec["config"]["axis"]["labelColor"]
+    assert spec["config"]["legend"]["labelColor"]
+    assert spec["layer"][0]["encoding"]["tooltip"][0]["title"] == "Fund"
+    assert "Historical OOS annualised return" in {
+        item["title"] for item in spec["layer"][0]["encoding"]["tooltip"]
+    }
 
 
 def test_growth_and_drawdown_are_derived_from_precomputed_net_returns():
@@ -81,6 +210,66 @@ def test_latest_weights_effective_holdings_and_concentration_summary():
     assert summary.is_low_diversification is True
 
 
+def test_broad_near_equal_detection_and_representative_holdings():
+    weights = pd.DataFrame(
+        {
+            "date": ["2021-01-01"] * 5,
+            "asset": ["A", "B", "C", "D", "E"],
+            "asset_class": ["equity"] * 5,
+            "weight": [0.2, 0.2, 0.2, 0.2, 0.2],
+        }
+    )
+    summary = funds.concentration_summary(weights)
+    representative = funds.representative_holdings(weights, top_n=3)
+
+    assert funds.is_broad_near_equal(summary) is False
+    assert representative["asset"].tolist() == ["A", "B", "C"]
+
+
+def test_large_broad_near_equal_fund_is_detected():
+    weights = pd.DataFrame(
+        {
+            "date": ["2021-01-01"] * 20,
+            "asset": [f"A{i:02d}" for i in range(20)],
+            "asset_class": ["equity"] * 20,
+            "weight": [0.05] * 20,
+        }
+    )
+    summary = funds.concentration_summary(weights)
+
+    assert funds.is_broad_near_equal(summary) is True
+
+
+def test_peer_comparison_uses_family_medians():
+    metrics = pd.DataFrame(
+        {
+            "fund_family": ["Combined", "Combined", "Combined", "Equity-only"],
+            "method": ["Equal Weight", "Minimum Variance", "Maximum Sharpe", "Equal Weight"],
+            "net_annualised_return": [0.1, 0.2, 0.3, 0.9],
+            "net_annualised_volatility": [0.4, 0.5, 0.6, 0.9],
+            "net_sharpe_ratio": [0.25, 0.4, 0.5, 1.0],
+        }
+    )
+
+    peer = funds.peer_comparison(metrics, funds.FundKey("Combined", "Minimum Variance"))
+
+    assert peer.selected_return == 0.2
+    assert peer.family_median_return == 0.2
+    assert peer.family_median_volatility == 0.5
+    assert peer.family_median_sharpe == 0.4
+    assert peer.family_peer_count == 3
+    assert peer.other_family_peer_count == 2
+    assert peer.heading == "Position within the 3-fund Combined family (2 other peers)"
+
+    relative = funds.relative_peer_metrics(metrics, funds.FundKey("Combined", "Minimum Variance"))
+
+    assert [metric.label for metric in relative] == ["Return", "Volatility", "Sharpe"]
+    assert relative[0].selected_text == "20.0%"
+    assert relative[0].median_text == "20.0%"
+    assert math.isclose(relative[0].selected_position, 0.5)
+    assert "not automatically a better fund" in relative[1].context
+
+
 def test_top_holdings_adds_display_remainder_without_changing_input():
     weights = pd.DataFrame(
         {
@@ -116,4 +305,3 @@ def test_latest_exposure_lookup_and_missing_fund_error():
     assert set(latest["asset_class_label"]) == {"Equity", "Crypto"}
     with pytest.raises(KeyError):
         funds.latest_exposure(exposure, funds.FundKey("Equity-only", "Equal Weight"))
-

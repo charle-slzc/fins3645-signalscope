@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -37,6 +38,41 @@ class ConcentrationSummary:
     asset_count: int
     is_concentrated: bool
     is_low_diversification: bool
+
+
+@dataclass(frozen=True)
+class PeerComparison:
+    family_label: str
+    selected_return: float
+    selected_volatility: float
+    selected_sharpe: float
+    family_median_return: float
+    family_median_volatility: float
+    family_median_sharpe: float
+    family_peer_count: int
+    other_family_peer_count: int
+
+    @property
+    def heading(self) -> str:
+        return (
+            f"Position within the {self.family_peer_count}-fund {self.family_label} family"
+            f" ({self.other_family_peer_count} other peer"
+            f"{'' if self.other_family_peer_count == 1 else 's'})"
+        )
+
+
+@dataclass(frozen=True)
+class RelativeMetric:
+    label: str
+    selected_value: float
+    family_median: float
+    family_minimum: float
+    family_maximum: float
+    selected_position: float
+    median_position: float
+    selected_text: str
+    median_text: str
+    context: str
 
 
 def display_family(family: str) -> str:
@@ -112,11 +148,86 @@ def comparison_frame(metrics: pd.DataFrame, selected: FundKey) -> pd.DataFrame:
     frame = metrics.copy()
     frame["family_label"] = frame["fund_family"].map(display_family)
     frame["fund_label"] = frame["family_label"] + " / " + frame["method"]
-    frame["selected"] = (frame["fund_family"] == selected.family) & (frame["method"] == selected.method)
+    frame["fund_key"] = frame["fund_family"] + "|" + frame["method"]
+    frame["is_selected"] = (frame["fund_family"] == selected.family) & (
+        frame["method"] == selected.method
+    )
     frame["return_pct"] = frame["net_annualised_return"]
     frame["volatility_pct"] = frame["net_annualised_volatility"]
     frame["drawdown_pct"] = frame["net_max_drawdown"]
     return frame
+
+
+def _first_scalar(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (list, tuple)):
+        if not value:
+            return None
+        return _first_scalar(value[0])
+    return str(value)
+
+
+def _event_as_dict(event: Any) -> dict[str, Any]:
+    if event is None:
+        return {}
+    if isinstance(event, dict):
+        return event
+    if hasattr(event, "to_dict"):
+        maybe = event.to_dict()
+        return maybe if isinstance(maybe, dict) else {}
+    selection = getattr(event, "selection", None)
+    if isinstance(selection, dict):
+        return {"selection": selection}
+    return {}
+
+
+def fund_key_from_selection_event(
+    event: Any,
+    metrics: pd.DataFrame,
+    selection_name: str = "fund_pick",
+) -> FundKey | None:
+    """Extract a fund key from a native Streamlit Vega-Lite selection event."""
+    payload = _event_as_dict(event)
+    selection = payload.get("selection")
+    if not isinstance(selection, dict):
+        return None
+
+    selected = selection.get(selection_name)
+    if not selected:
+        return None
+
+    fund_key: str | None = None
+    fund_family: str | None = None
+    method: str | None = None
+    if isinstance(selected, list):
+        if not selected or not isinstance(selected[0], dict):
+            return None
+        point = selected[0]
+        fund_key = _first_scalar(point.get("fund_key"))
+        fund_family = _first_scalar(point.get("fund_family"))
+        method = _first_scalar(point.get("method"))
+    elif isinstance(selected, dict):
+        fund_key = _first_scalar(selected.get("fund_key"))
+        fund_family = _first_scalar(selected.get("fund_family"))
+        method = _first_scalar(selected.get("method"))
+
+    if fund_key:
+        matches = metrics.copy()
+        if "fund_key" not in matches.columns:
+            matches["fund_key"] = matches["fund_family"] + "|" + matches["method"]
+        row = matches[matches["fund_key"] == fund_key]
+        if not row.empty:
+            return validate_fund_key(metrics, str(row.iloc[0]["fund_family"]), str(row.iloc[0]["method"]))
+
+    if not fund_family or not method:
+        return None
+    try:
+        return validate_fund_key(metrics, fund_family, method)
+    except (KeyError, ValueError):
+        return None
 
 
 def metric_row(metrics: pd.DataFrame, key: FundKey) -> pd.Series:
@@ -124,6 +235,83 @@ def metric_row(metrics: pd.DataFrame, key: FundKey) -> pd.Series:
     if matches.empty:
         raise KeyError(f"Metrics not found for {key.label}")
     return matches.iloc[0]
+
+
+def peer_comparison(metrics: pd.DataFrame, key: FundKey) -> PeerComparison:
+    selected = metric_row(metrics, key)
+    peers = metrics[metrics["fund_family"] == key.family]
+    if peers.empty:
+        raise KeyError(f"Peer metrics not found for {key.label}")
+    return PeerComparison(
+        family_label=display_family(key.family),
+        selected_return=float(selected["net_annualised_return"]),
+        selected_volatility=float(selected["net_annualised_volatility"]),
+        selected_sharpe=float(selected["net_sharpe_ratio"]),
+        family_median_return=float(peers["net_annualised_return"].median()),
+        family_median_volatility=float(peers["net_annualised_volatility"].median()),
+        family_median_sharpe=float(peers["net_sharpe_ratio"].median()),
+        family_peer_count=int(len(peers)),
+        other_family_peer_count=max(int(len(peers)) - 1, 0),
+    )
+
+
+def _position_in_range(value: float, minimum: float, maximum: float) -> float:
+    if not np.isfinite(value) or not np.isfinite(minimum) or not np.isfinite(maximum):
+        return 0.5
+    if abs(maximum - minimum) < 1e-12:
+        return 0.5
+    return float(np.clip((value - minimum) / (maximum - minimum), 0.0, 1.0))
+
+
+def relative_peer_metrics(metrics: pd.DataFrame, key: FundKey) -> list[RelativeMetric]:
+    selected = metric_row(metrics, key)
+    peers = metrics[metrics["fund_family"] == key.family]
+    if peers.empty:
+        raise KeyError(f"Peer metrics not found for {key.label}")
+
+    specs = (
+        (
+            "Return",
+            "net_annualised_return",
+            lambda value: format_percent(value),
+            "Higher historical OOS return came with its own risk path.",
+        ),
+        (
+            "Volatility",
+            "net_annualised_volatility",
+            lambda value: format_percent(value),
+            "Lower volatility means less variation, not automatically a better fund.",
+        ),
+        (
+            "Sharpe",
+            "net_sharpe_ratio",
+            lambda value: f"{value:.2f}",
+            "Return per unit of volatility within the same fund family.",
+        ),
+    )
+    relative = []
+    for label, column, formatter, context in specs:
+        selected_value = float(selected[column])
+        family_median = float(peers[column].median())
+        family_minimum = float(peers[column].min())
+        family_maximum = float(peers[column].max())
+        relative.append(
+            RelativeMetric(
+                label=label,
+                selected_value=selected_value,
+                family_median=family_median,
+                family_minimum=family_minimum,
+                family_maximum=family_maximum,
+                selected_position=_position_in_range(
+                    selected_value, family_minimum, family_maximum
+                ),
+                median_position=_position_in_range(family_median, family_minimum, family_maximum),
+                selected_text=formatter(selected_value),
+                median_text=formatter(family_median),
+                context=context,
+            )
+        )
+    return relative
 
 
 def return_series(fund_returns: pd.DataFrame, key: FundKey) -> pd.DataFrame:
@@ -219,6 +407,19 @@ def top_holdings_with_remainder(weights: pd.DataFrame, top_n: int = 10) -> pd.Da
     return top
 
 
+def is_broad_near_equal(summary: ConcentrationSummary) -> bool:
+    if summary.asset_count <= 0:
+        return False
+    effective_share = summary.effective_holdings / summary.asset_count
+    return effective_share >= 0.75 and summary.top_weight <= 0.12
+
+
+def representative_holdings(weights: pd.DataFrame, top_n: int = 6) -> pd.DataFrame:
+    display = weights[weights["weight"].abs() > 1e-8].copy()
+    display = display.sort_values(["weight", "asset"], ascending=[False, True]).reset_index(drop=True)
+    return display.head(top_n).copy()
+
+
 def latest_exposure(asset_class_exposure: pd.DataFrame, key: FundKey) -> pd.DataFrame:
     required = {"date", "fund_family", "method", "asset_class", "exposure"}
     missing = required.difference(asset_class_exposure.columns)
@@ -273,4 +474,3 @@ def format_percent(value: float, digits: int = 1) -> str:
 
 def format_multiple(value: float, digits: int = 1) -> str:
     return f"{value:.{digits}f}x"
-

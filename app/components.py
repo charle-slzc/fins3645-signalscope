@@ -8,7 +8,7 @@ import streamlit as st
 
 from app import charts
 from app import design
-from app.data import ArtifactValidationError, StartupArtifacts, startup_registry
+from app.data import ArtifactValidationError, StartupArtifacts
 from app.funds import (
     FAMILY_FILTERS,
     METHOD_FILTERS,
@@ -23,15 +23,19 @@ from app.funds import (
     family_caveat,
     filter_metrics,
     first_live_row,
+    fund_key_from_selection_event,
     format_multiple,
     format_percent,
     growth_and_drawdown_from_returns,
+    is_broad_near_equal,
     latest_exposure,
     latest_weights,
     method_explanation,
     metric_row,
+    peer_comparison,
+    relative_peer_metrics,
+    representative_holdings,
     return_series,
-    top_holdings_with_remainder,
     validate_fund_key,
 )
 from app.navigation import set_view
@@ -52,6 +56,13 @@ def render_artifact_error(error: ArtifactValidationError) -> None:
 def render_truth_labels() -> None:
     labels = "".join(design.truth_label_html(label) for label in design.TRUTH_LABELS)
     st.markdown(f'<div class="ss-label-row">{labels}</div>', unsafe_allow_html=True)
+
+
+def render_section_label(label: str) -> None:
+    st.markdown(
+        f'<p class="ss-section-label">{html.escape(label)}</p>',
+        unsafe_allow_html=True,
+    )
 
 
 def render_panel(title: str, body: str, accent: str = "control") -> None:
@@ -75,7 +86,7 @@ def render_panel(title: str, body: str, accent: str = "control") -> None:
 
 
 def render_caveat(text: str, warning: bool = False) -> None:
-    css_class = "ss-warning" if warning else "ss-caveat"
+    css_class = "ss-warning" if warning else "ss-disclosure"
     st.markdown(
         f'<div class="{css_class}">{html.escape(text)}</div>',
         unsafe_allow_html=True,
@@ -96,10 +107,11 @@ def render_method_badges(family: str, method: str, method_type: str) -> None:
 
 def render_kpi_grid(items: list[tuple[str, str, str]]) -> None:
     cells = []
-    for label, value, helper in items:
+    for index, (label, value, helper) in enumerate(items):
+        primary_class = " is-primary" if index == 0 else ""
         cells.append(
             f"""
-<div class="ss-kpi">
+<div class="ss-kpi{primary_class}">
   <p class="ss-kpi-label">{html.escape(label)}</p>
   <p class="ss-kpi-value">{html.escape(value)}</p>
   <p class="ss-kpi-help">{html.escape(helper)}</p>
@@ -107,6 +119,20 @@ def render_kpi_grid(items: list[tuple[str, str, str]]) -> None:
 """
         )
     st.markdown(f'<div class="ss-kpi-grid">{"".join(cells)}</div>', unsafe_allow_html=True)
+
+
+def render_context_strip(items: list[tuple[str, str]]) -> None:
+    cells = []
+    for value, label in items:
+        cells.append(
+            f"""
+<div class="ss-context-item">
+  <strong>{html.escape(value)}</strong>
+  <span>{html.escape(label)}</span>
+</div>
+"""
+        )
+    st.markdown(f'<div class="ss-context-strip">{"".join(cells)}</div>', unsafe_allow_html=True)
 
 
 def render_mini_grid(items: list[tuple[str, str]]) -> None:
@@ -147,18 +173,6 @@ def render_future_stage(stage: str, question: str, phase: str, detail: str) -> N
     )
 
 
-def render_startup_status(artifacts: StartupArtifacts) -> None:
-    registry = startup_registry()
-    loaded_files = len(registry)
-    actual_mb = artifacts.total_bytes / 1_000_000
-    expected_mb = artifacts.expected_bytes / 1_000_000
-    st.caption(
-        f"Startup evidence pack loaded: {loaded_files} compact CSV artifacts, "
-        f"{artifacts.total_bytes:,} bytes ({actual_mb:.2f} MB). "
-        f"Approved budget: {artifacts.expected_bytes:,} bytes ({expected_mb:.2f} MB)."
-    )
-
-
 def selected_fund(metrics) -> FundKey:
     family = st.session_state.get("selected_fund_family")
     method = st.session_state.get("selected_fund_method")
@@ -178,12 +192,26 @@ def set_selected_fund(key: FundKey) -> None:
     st.session_state["selected_fund_method"] = key.method
 
 
+def sync_selected_fund_from_chart(metrics) -> bool:
+    event = st.session_state.get("risk_return_map")
+    key = fund_key_from_selection_event(event, metrics, charts.FUND_SELECTION_NAME)
+    if key is None:
+        return False
+    previous = selected_fund(metrics)
+    if key == previous:
+        return False
+    set_selected_fund(key)
+    st.session_state["selected_fund_label"] = key.label
+    return True
+
+
 def fund_options_from_metrics(metrics) -> list[FundKey]:
     return available_funds(metrics)
 
 
 def render_fund_controls(metrics) -> tuple[FundKey, object]:
     current = selected_fund(metrics)
+    st.markdown('<div class="ss-control-title">Choose a fund universe</div>', unsafe_allow_html=True)
     family_col, method_col = st.columns(2)
     with family_col:
         family_kwargs = {}
@@ -219,136 +247,158 @@ def render_fund_controls(metrics) -> tuple[FundKey, object]:
         set_selected_fund(current)
 
     labels = [option.label for option in options]
-    selected_label = st.selectbox(
-        "Selected fund",
-        labels,
-        index=labels.index(current.label),
-        help="The selected fund is highlighted in Fund and opens in Risk.",
-    )
+    if st.session_state.get("selected_fund_label") not in labels:
+        st.session_state["selected_fund_label"] = current.label
+    selected_col, action_col = st.columns([2.2, 0.95])
+    with selected_col:
+        selected_label = st.selectbox(
+            "Selected fund",
+            labels,
+            key="selected_fund_label",
+            help="The selected fund is highlighted in Fund and opens in Risk.",
+        )
     selected_index = labels.index(selected_label)
     selected = options[selected_index]
     set_selected_fund(selected)
+    with action_col:
+        st.write("")
+        if st.button("Open fact sheet", type="primary", width="stretch"):
+            set_view("Risk")
+            st.rerun()
     return selected, filtered
 
 
 def render_metric_interpretation() -> None:
-    render_mini_grid(
-        [
-            ("Annualised return", "historical OOS return, not expected return"),
-            ("Volatility", "how much daily returns varied, annualised"),
-            ("Sharpe", "return per unit of volatility"),
-            ("Max drawdown", "worst peak-to-trough fall"),
-            ("Turnover", "trading intensity and potential cost drag"),
-            ("Effective holdings", "how concentrated the fund behaves"),
-        ]
-    )
+    with st.expander("How to read this comparison", expanded=False):
+        st.markdown(
+            "\n".join(
+                [
+                    "- **Annualised return**: historical OOS return, not expected return.",
+                    "- **Volatility**: annualised variability of returns.",
+                    "- **Sharpe**: return per unit of volatility.",
+                    "- **Max drawdown**: worst peak-to-trough fall.",
+                    "- **Turnover**: trading intensity and potential cost drag.",
+                    "- **Effective holdings**: how concentrated the fund behaves.",
+                ]
+            )
+        )
 
 
-def ranking_frame(metrics):
-    ranked = metrics.copy()
-    ranked["family_label"] = ranked["fund_family"].map(display_family)
-    ranked["fund_label"] = ranked["family_label"] + " / " + ranked["method"]
-    ranked["drawdown_abs"] = ranked["net_max_drawdown"].abs()
-    return ranked
-
-
-def render_ranked_funds(metrics, rank_by: str) -> None:
-    rank_map = {
-        "Sharpe": ("net_sharpe_ratio", False),
-        "Annualised return": ("net_annualised_return", False),
-        "Max drawdown": ("drawdown_abs", True),
-        "Volatility": ("net_annualised_volatility", True),
-        "Turnover": ("total_turnover", True),
-    }
-    ranked = ranking_frame(metrics)
-    column, ascending = rank_map[rank_by]
-    ranked = ranked.sort_values(column, ascending=ascending)
-    rows = []
-    for row in ranked.itertuples(index=False):
-        rows.append(
+def render_peer_context(metrics, selected: FundKey) -> None:
+    peer = peer_comparison(metrics, selected)
+    lines = []
+    for metric in relative_peer_metrics(metrics, selected):
+        selected_left = f"{metric.selected_position * 100:.3f}%"
+        median_left = f"{metric.median_position * 100:.3f}%"
+        lines.append(
             f"""
-<div class="ss-fund-row">
-  <strong>{html.escape(row.fund_label)}</strong>
-  <span>Return {format_percent(row.net_annualised_return)}</span>
-  <span>Vol {format_percent(row.net_annualised_volatility)}</span>
-  <span>Sharpe {row.net_sharpe_ratio:.2f}</span>
-  <span>Max DD {format_percent(row.net_max_drawdown)}</span>
-  <span>Turnover {format_multiple(row.total_turnover)}</span>
+<div class="ss-relative-line">
+  <div class="ss-relative-label">{html.escape(metric.label)}</div>
+  <div class="ss-relative-track" aria-hidden="true">
+    <span class="ss-relative-median" style="left: {median_left};"></span>
+    <span class="ss-relative-selected" style="left: {selected_left};"></span>
+  </div>
+  <div class="ss-relative-values">
+    selected {html.escape(metric.selected_text)}<br />
+    family median {html.escape(metric.median_text)}
+  </div>
 </div>
+<p class="ss-peer-note">{html.escape(metric.context)}</p>
 """
         )
-    st.markdown("".join(rows), unsafe_allow_html=True)
+    st.markdown(
+        f"""
+<div class="ss-peer-card">
+  <p class="ss-peer-title">{html.escape(peer.heading)}</p>
+  <div class="ss-peer-grid">{"".join(lines)}</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
 
 
 def render_fund_shell(artifacts: StartupArtifacts) -> None:
     metrics = artifacts.frames["performance_metrics"]
-    selected = selected_fund(metrics)
+    if sync_selected_fund_from_chart(metrics):
+        st.rerun()
 
     st.markdown(
         f"""
 <div class="signalscope-shell">
   <p class="ss-kicker">Evidence-first decision cockpit</p>
-  <h1 class="ss-hero-title">{design.APP_TITLE}</h1>
+  <div class="ss-wordmark">{design.brand_mark_html()}<h1 class="ss-hero-title">{design.APP_TITLE}</h1></div>
   <p class="ss-hero-line">{design.CORE_LINE}</p>
   <p class="ss-value">Compare the nine investable historical OOS funds, then open a fact sheet to inspect risk, holdings, concentration, and costs.</p>
+  {design.signal_evidence_trace_html()}
 </div>
 """,
         unsafe_allow_html=True,
     )
     render_truth_labels()
 
-    action_left, action_right, _ = st.columns([1.1, 1.1, 2.8])
-    with action_left:
-        if st.button("Open fact sheet", type="primary", width="stretch"):
-            set_view("Risk")
-            st.rerun()
+    action_right, _ = st.columns([1.1, 3.9])
     with action_right:
         if st.button("Inspect evidence", width="stretch"):
             set_view("Evidence")
             st.rerun()
 
-    selected, filtered = render_fund_controls(metrics)
+    _, control_area, _ = st.columns([0.06, 0.88, 0.06])
+    with control_area:
+        st.markdown('<div class="ss-control-frame">', unsafe_allow_html=True)
+        selected, filtered = render_fund_controls(metrics)
+        st.markdown("</div>", unsafe_allow_html=True)
+
     chart_frame = comparison_frame(filtered, selected)
-    st.caption(f"Selected: {selected.label}. Equal Weight is a benchmark; optimisation methods are not automatically superior.")
-    st.vega_lite_chart(chart_frame, charts.risk_return_spec(), width="stretch")
-    render_caveat(
-        "Read the map as a tradeoff between historical return and annualised volatility. "
-        "The highlighted point is selected for inspection; upper-right is not automatically better because drawdown, turnover, and concentration also matter."
+    render_section_label("Risk-return map")
+    st.markdown('<div class="ss-chart-frame">', unsafe_allow_html=True)
+    focus_label = st.session_state.get("fund_family_filter", "All") or "All"
+    st.caption(
+        f"Selected: {selected.label}. The map uses the current Family focus ({focus_label}) "
+        "to keep the visual scale readable; no data or backtest changes."
     )
-
-    st.subheader("Metric Language")
+    chart_event = st.vega_lite_chart(
+        chart_frame,
+        charts.risk_return_spec(),
+        width="stretch",
+        key="risk_return_map",
+        on_select="rerun",
+        selection_mode=charts.FUND_SELECTION_NAME,
+    )
+    clicked_key = fund_key_from_selection_event(chart_event, metrics, charts.FUND_SELECTION_NAME)
+    if clicked_key is not None and clicked_key != selected:
+        set_selected_fund(clicked_key)
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(
+        '<p class="ss-read-guide">Read the map as a tradeoff between historical OOS return and annualised volatility. '
+        'The highlighted point is selected for inspection; upper-right is not automatically better because drawdown, turnover, and concentration also matter.</p>',
+        unsafe_allow_html=True,
+    )
     render_metric_interpretation()
-
-    st.subheader("Comparison Snapshot")
-    rank_by = st.selectbox(
-        "Rank by",
-        ("Sharpe", "Annualised return", "Max drawdown", "Volatility", "Turnover"),
-        index=0,
-    )
-    render_ranked_funds(filtered, rank_by)
-
-    st.divider()
-    render_startup_status(artifacts)
+    render_section_label("Relative position")
+    render_peer_context(metrics, selected)
 
 
 def render_concentration(summary: ConcentrationSummary) -> None:
-    render_mini_grid(
-        [
-            (summary.top_asset, f"largest holding at {format_percent(summary.top_weight)}"),
-            (f"{summary.effective_holdings:.1f}", "effective number of holdings"),
-            (summary.latest_date, "latest saved holdings date"),
-        ]
-    )
     if summary.is_concentrated:
-        render_caveat(
-            "Concentration warning: this saved portfolio has more than 25% in one asset. "
-            "Review holdings before interpreting the optimisation as diversified.",
-            warning=True,
+        st.markdown(
+            f"""
+<div class="ss-concentration-flag">
+  <strong>Concentration flag.</strong> Largest holding is {html.escape(summary.top_asset)}
+  at {format_percent(summary.top_weight)}. This is an inspection heuristic, not a forecast or a verdict.
+</div>
+""",
+            unsafe_allow_html=True,
         )
     if summary.is_low_diversification:
-        render_caveat(
-            "Diversification warning: the portfolio behaves like fewer than five equally weighted holdings.",
-            warning=True,
+        st.markdown(
+            f"""
+<div class="ss-concentration-flag">
+  <strong>Diversification flag.</strong> Effective holdings are {summary.effective_holdings:.1f},
+  below the five-holding inspection threshold.
+</div>
+""",
+            unsafe_allow_html=True,
         )
 
 
@@ -364,7 +414,8 @@ def render_risk_fact_sheet(artifacts: StartupArtifacts) -> None:
     first_live = first_live_row(first_live_dates, key)
     latest = latest_weights(weights, key)
     concentration = concentration_summary(latest)
-    holdings_display = top_holdings_with_remainder(latest, top_n=10)
+    broad_fund = is_broad_near_equal(concentration)
+    holdings_display = representative_holdings(latest, top_n=8 if broad_fund else 10)
     exposure_latest = latest_exposure(exposure, key)
     path = growth_and_drawdown_from_returns(return_series(returns, key))
 
@@ -377,6 +428,7 @@ def render_risk_fact_sheet(artifacts: StartupArtifacts) -> None:
     st.markdown(f"**{key.label}**")
     st.caption(method_explanation(key.method))
 
+    render_section_label("Key performance")
     render_kpi_grid(
         [
             (
@@ -398,42 +450,87 @@ def render_risk_fact_sheet(artifacts: StartupArtifacts) -> None:
         ]
     )
 
-    left, right = st.columns([1.35, 0.9])
-    with left:
-        st.subheader("Growth Of $1")
-        st.vega_lite_chart(path, charts.growth_spec(), width="stretch")
-        st.caption("Built from the saved net OOS fund return series. Transaction costs are already reflected.")
-    with right:
-        st.subheader("Fund Context")
-        render_mini_grid(
-            [
-                (first_live["first_live_date"], "first live OOS date"),
-                (format_multiple(row["total_turnover"]), "total turnover"),
-                (f"{int(first_live['estimation_window'])}", "trailing estimation observations"),
-            ]
-        )
-        render_caveat(family_caveat(key.family))
+    render_section_label("Risk context")
+    render_context_strip(
+        [
+            (first_live["first_live_date"], "first live OOS date"),
+            (format_multiple(row["total_turnover"]), "total turnover"),
+            (f"{int(first_live['estimation_window'])}", "trailing estimation observations"),
+        ]
+    )
+    render_caveat(family_caveat(key.family))
+
+    st.subheader("Growth of $1")
+    st.vega_lite_chart(path, charts.growth_spec(), width="stretch")
+    st.caption("Shows how $1 compounded through the historical out-of-sample window.")
 
     st.subheader("Drawdown")
     st.vega_lite_chart(path, charts.drawdown_spec(), width="stretch")
 
-    st.subheader("What The Fund Owns")
+    render_section_label("Portfolio structure")
     holdings_left, holdings_right = st.columns([1.25, 0.9])
     with holdings_left:
         st.vega_lite_chart(holdings_display, charts.holdings_spec(holdings_display), width="stretch")
-        st.caption("Small numerical weights are hidden only in this display; the saved weight artifact is unchanged.")
+        if broad_fund:
+            st.markdown(
+                f"""
+<div class="ss-holdings-note">
+  Broad, near-equal portfolio. {concentration.asset_count} holdings,
+  {concentration.effective_holdings:.1f} effective holdings, largest weight {format_percent(concentration.top_weight)}.
+  Representative positions are shown; remaining weights are similar.
+</div>
+""",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.caption("Top saved positions shown. Concentration is a product inspection flag, not an automatic judgement.")
     with holdings_right:
-        render_concentration(concentration)
+        if broad_fund:
+            render_context_strip(
+                [
+                    (str(concentration.asset_count), "holdings"),
+                    (f"{concentration.effective_holdings:.1f}", "effective holdings"),
+                    (format_percent(concentration.top_weight), f"largest: {concentration.top_asset}"),
+                    (concentration.latest_date, "latest saved date"),
+                ]
+            )
+        else:
+            render_concentration(concentration)
+            render_context_strip(
+                [
+                    (format_percent(concentration.top_weight), f"largest: {concentration.top_asset}"),
+                    (f"{concentration.effective_holdings:.1f}", "effective holdings"),
+                    (concentration.latest_date, "latest saved date"),
+                ]
+            )
 
-    st.subheader("Asset-Class Exposure")
-    st.vega_lite_chart(exposure_latest, charts.exposure_spec(), width="stretch")
-    exposure_text = ", ".join(
-        f"{row.asset_class_label}: {format_percent(row.exposure)}"
-        for row in exposure_latest.itertuples(index=False)
-    )
-    st.caption(f"Latest saved exposure: {exposure_text}.")
+    render_section_label("Asset-class exposure")
+    if key.family == "Combined":
+        segments = []
+        exposure_for_bar = exposure_latest.copy()
+        exposure_for_bar["display_order"] = exposure_for_bar["asset_class_label"].map(
+            {"Crypto": 0, "Equity": 1}
+        )
+        for exposure_row in exposure_for_bar.sort_values("display_order").itertuples(index=False):
+            sleeve_class = (
+                "ss-exposure-equity"
+                if exposure_row.asset_class_label == "Equity"
+                else "ss-exposure-crypto"
+            )
+            segments.append(
+                f'<div class="ss-exposure-segment {sleeve_class}" style="width: {max(exposure_row.exposure * 100, 4):.3f}%;">'
+                f'{html.escape(exposure_row.asset_class_label)} {format_percent(exposure_row.exposure)}</div>'
+            )
+        st.markdown(f'<div class="ss-exposure-bar">{"".join(segments)}</div>', unsafe_allow_html=True)
+    else:
+        only = exposure_latest.iloc[0]
+        st.markdown(
+            f'<div class="ss-single-exposure">{format_percent(float(only["exposure"]), 0)} '
+            f'{html.escape(str(only["asset_class_label"]))}</div>',
+            unsafe_allow_html=True,
+        )
 
-    with st.expander("Method And Cost Disclosure", expanded=False):
+    with st.expander("Historical OOS Methodology", expanded=False):
         st.markdown(
             "\n".join(
                 [

@@ -157,6 +157,9 @@ def test_risk_return_spec_defines_native_selection_and_dark_labels():
     alt.Chart.from_dict(spec, validate=True)
     assert spec["layer"][0]["encoding"]["x"]["field"] == "volatility_pct"
     assert spec["layer"][0]["encoding"]["y"]["field"] == "return_pct"
+    assert spec["layer"][0]["encoding"]["x"]["axis"]["format"] == ".1%"
+    assert spec["layer"][0]["encoding"]["y"]["axis"]["format"] == ".1%"
+    assert spec["layer"][0]["encoding"]["x"]["axis"]["tickCount"] == 5
     assert spec["layer"][0]["params"][0]["name"] == charts.FUND_SELECTION_NAME
     assert spec["layer"][0]["params"][0]["select"]["fields"] == ["fund_key"]
     assert spec["config"]["axis"]["labelColor"]
@@ -165,6 +168,53 @@ def test_risk_return_spec_defines_native_selection_and_dark_labels():
     assert "Historical OOS annualised return" in {
         item["title"] for item in spec["layer"][0]["encoding"]["tooltip"]
     }
+
+
+def test_growth_drawdown_and_holdings_axes_use_non_ambiguous_labels():
+    growth = charts.growth_spec()
+    drawdown = charts.drawdown_spec()
+    holdings = charts.holdings_spec(pd.DataFrame({"asset": ["A", "B"], "weight": [0.02, 0.02]}))
+
+    assert growth["encoding"]["x"]["axis"]["format"] == "%b %Y"
+    assert drawdown["encoding"]["x"]["axis"]["format"] == "%b %Y"
+    assert holdings["encoding"]["x"]["axis"]["format"] == ".1%"
+    assert holdings["encoding"]["x"]["axis"]["tickCount"] == 5
+
+
+def test_equal_weight_estimation_context_does_not_imply_optimiser_window():
+    value, label = funds.estimation_context("Equal Weight", 252)
+
+    assert value == "Benchmark"
+    assert label == "no optimisation estimation window"
+    assert "no optimiser estimation window" in "\n".join(
+        funds.rebalance_methodology_lines(
+            funds.FundKey("Combined", "Equal Weight"),
+            pd.Series(
+                {
+                    "sample_start": "2021-01-04",
+                    "sample_end": "2023-12-29",
+                    "periods_per_year": 252,
+                }
+            ),
+        )
+    )
+
+
+def test_combined_equal_weight_latest_exposure_matches_saved_weights():
+    root = project_root()
+    exposure = pd.read_csv(root / "results/tables/asset_class_exposure.csv")
+    weights = pd.read_csv(root / "results/data/fund_weights.csv")
+    key = funds.FundKey("Combined", "Equal Weight")
+
+    latest_exposure = funds.latest_exposure(exposure, key)
+    latest_weights = funds.latest_weights(weights, key)
+
+    assert latest_exposure.set_index("asset_class")["exposure"].to_dict() == pytest.approx(
+        {"crypto": 1 / 6, "equity": 5 / 6}
+    )
+    assert latest_weights.groupby("asset_class")["weight"].sum().to_dict() == pytest.approx(
+        {"crypto": 1 / 6, "equity": 5 / 6}
+    )
 
 
 def test_growth_and_drawdown_are_derived_from_precomputed_net_returns():

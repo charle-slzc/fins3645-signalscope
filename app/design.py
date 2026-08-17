@@ -142,7 +142,7 @@ button[kind="secondary"] {
 }
 [data-testid="stSegmentedControl"] button {
   border-color: var(--ss-border) !important;
-  color: var(--ss-text-secondary) !important;
+  color: #d7dfda !important;
   background: var(--ss-surface) !important;
 }
 [data-testid="stSegmentedControl"] button[aria-pressed="true"] {
@@ -387,7 +387,7 @@ button[kind="secondary"] {
   line-height: 1.05;
 }
 .ss-kpi.is-primary .ss-kpi-value {
-  color: var(--ss-action);
+  color: var(--ss-signal);
   font-size: clamp(2rem, 4vw, 2.75rem);
 }
 .ss-kpi-help {
@@ -589,6 +589,160 @@ button[kind="secondary"] {
   font-size: 0.78rem;
   font-weight: 700;
 }
+.ss-lens-flow {
+  margin: 0.75rem 0 var(--ss-space-3);
+  padding: 1rem;
+  border-top: 1px solid var(--ss-border);
+  border-bottom: 1px solid var(--ss-border);
+  background: linear-gradient(180deg, rgba(22, 34, 30, 0.82), rgba(16, 25, 22, 0.82));
+}
+.ss-lens-step {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  padding: 0.82rem 0;
+  border-bottom: 1px solid var(--ss-border-soft);
+}
+.ss-lens-step:last-child {
+  border-bottom: 0;
+}
+.ss-lens-label {
+  color: var(--ss-text-tertiary);
+  font-size: 0.72rem;
+  font-weight: 760;
+  letter-spacing: 0;
+}
+.ss-lens-title {
+  margin-top: 0.16rem;
+  color: var(--ss-text-primary);
+  font-size: 0.95rem;
+  font-weight: 760;
+}
+.ss-lens-copy {
+  margin: 0.38rem 0 0;
+  color: var(--ss-text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.42;
+}
+.ss-direction-rail,
+.ss-confidence-rail {
+  position: relative;
+  height: 1.9rem;
+}
+.ss-direction-rail::before,
+.ss-confidence-rail::before {
+  content: "";
+  position: absolute;
+  top: 0.9rem;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 999px;
+}
+.ss-direction-rail::before {
+  background: linear-gradient(90deg, var(--ss-negative), var(--ss-control), var(--ss-signal));
+}
+.ss-confidence-rail::before {
+  background: linear-gradient(90deg, #4d5854, var(--ss-evidence));
+}
+.ss-direction-marker,
+.ss-confidence-marker {
+  position: absolute;
+  top: 0.45rem;
+  width: 0.95rem;
+  height: 0.95rem;
+  transform: translateX(-50%);
+  border: 2px solid var(--ss-text-primary);
+  border-radius: 999px;
+}
+.ss-direction-marker {
+  background: var(--ss-signal);
+}
+.ss-confidence-marker {
+  background: var(--ss-evidence);
+}
+.ss-evidence-cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+  margin: 0.15rem 0 0.45rem;
+}
+.ss-evidence-cell {
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 1px solid var(--ss-border);
+  border-radius: 999px;
+  background: transparent;
+}
+.ss-evidence-cell.is-filled {
+  border-color: var(--ss-evidence);
+  background: var(--ss-evidence);
+}
+.ss-evidence-cell.is-missing {
+  border-style: dashed;
+  opacity: 0.72;
+}
+.ss-case-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin: 0.8rem 0 var(--ss-space-2);
+}
+.ss-case-action {
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--ss-border);
+}
+.ss-case-title {
+  margin: 0 0 0.22rem;
+  color: var(--ss-text-primary);
+  font-size: 1rem;
+  font-weight: 760;
+}
+.ss-case-copy {
+  margin: 0;
+  color: var(--ss-text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.42;
+}
+.ss-headline-pile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.16rem;
+  max-width: 22rem;
+  margin: 0.45rem 0;
+}
+.ss-headline-dot {
+  width: 0.36rem;
+  height: 0.36rem;
+  border-radius: 999px;
+  background: var(--ss-evidence);
+  opacity: 0.9;
+}
+.ss-headline-dot.is-dominant {
+  background: var(--ss-warning);
+}
+.ss-ticker-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.45rem 0;
+}
+.ss-ticker-slot {
+  min-width: 3.8rem;
+  padding: 0.45rem 0.54rem;
+  border: 1px dashed var(--ss-border);
+  border-radius: var(--ss-radius);
+  color: var(--ss-text-tertiary);
+  font-size: 0.8rem;
+  text-align: center;
+}
+.ss-ticker-slot.is-observed {
+  border-style: solid;
+  border-color: var(--ss-evidence);
+  color: var(--ss-text-primary);
+  background: rgba(200, 169, 79, 0.12);
+}
 @media (max-width: 760px) {
   .block-container {
     padding-left: 1rem;
@@ -608,7 +762,9 @@ button[kind="secondary"] {
     grid-template-columns: 1fr 1fr;
   }
   .ss-relative-line,
-  .ss-holdings-grid {
+  .ss-holdings-grid,
+  .ss-lens-step,
+  .ss-case-row {
     grid-template-columns: 1fr;
     gap: 0.25rem;
   }

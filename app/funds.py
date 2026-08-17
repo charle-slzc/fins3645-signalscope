@@ -457,6 +457,35 @@ def method_explanation(method: str) -> str:
     return "Systematic fund built from precomputed out-of-sample results."
 
 
+def estimation_context(method: str, estimation_window: int | float) -> tuple[str, str]:
+    if method == "Equal Weight":
+        return ("Benchmark", "no optimisation estimation window")
+    return (f"{int(estimation_window)}", "trailing estimation observations")
+
+
+def rebalance_methodology_lines(key: FundKey, row: pd.Series) -> list[str]:
+    common = [
+        "- Historical out-of-sample backtest, not a forecast or personalised investment advice.",
+        "- Long-only, fully invested, no leverage.",
+        "- 10 bps transaction cost per dollar of turnover, already deducted in net returns.",
+        "- 0% annual risk-free-rate convention for Sharpe calculations.",
+        f"- OOS sample: {row['sample_start']} to {row['sample_end']}.",
+        f"- Annualisation convention: {int(row['periods_per_year'])} periods per year.",
+        f"- {family_caveat(key.family)}",
+    ]
+    if key.method == "Equal Weight":
+        method_line = (
+            "- Equal Weight is a benchmark with no optimiser estimation window; "
+            "the first live date is aligned for OOS comparability."
+        )
+    else:
+        method_line = (
+            "- Monthly rebalance using saved weights estimated from trailing "
+            "historical observations."
+        )
+    return [common[0], "- " + method_explanation(key.method), method_line, *common[1:]]
+
+
 def family_caveat(family: str) -> str:
     if family == "Combined":
         return (

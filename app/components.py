@@ -8,6 +8,8 @@ import streamlit as st
 
 from app import charts
 from app import design
+from app.evidence import render_evidence_page
+from app.signal import render_signal_page
 from app.data import ArtifactValidationError, StartupArtifacts
 from app.funds import (
     FAMILY_FILTERS,
@@ -20,6 +22,7 @@ from app.funds import (
     default_fund_key,
     display_family,
     effective_holdings,
+    estimation_context,
     family_caveat,
     filter_metrics,
     first_live_row,
@@ -34,6 +37,7 @@ from app.funds import (
     metric_row,
     peer_comparison,
     relative_peer_metrics,
+    rebalance_methodology_lines,
     representative_holdings,
     return_series,
     validate_fund_key,
@@ -352,9 +356,10 @@ def render_fund_shell(artifacts: StartupArtifacts) -> None:
     render_section_label("Risk-return map")
     st.markdown('<div class="ss-chart-frame">', unsafe_allow_html=True)
     focus_label = st.session_state.get("fund_family_filter", "All") or "All"
+    method_focus = st.session_state.get("fund_method_filter", "All") or "All"
     st.caption(
-        f"Selected: {selected.label}. The map uses the current Family focus ({focus_label}) "
-        "to keep the visual scale readable; no data or backtest changes."
+        f"Selected: {selected.label}. Showing Family filter {focus_label} and Method filter "
+        f"{method_focus}. Filters change the view only, not the saved backtest."
     )
     chart_event = st.vega_lite_chart(
         chart_frame,
@@ -451,11 +456,14 @@ def render_risk_fact_sheet(artifacts: StartupArtifacts) -> None:
     )
 
     render_section_label("Risk context")
+    estimation_value, estimation_label = estimation_context(
+        key.method, first_live["estimation_window"]
+    )
     render_context_strip(
         [
             (first_live["first_live_date"], "first live OOS date"),
             (format_multiple(row["total_turnover"]), "total turnover"),
-            (f"{int(first_live['estimation_window'])}", "trailing estimation observations"),
+            (estimation_value, estimation_label),
         ]
     )
     render_caveat(family_caveat(key.family))
@@ -531,20 +539,7 @@ def render_risk_fact_sheet(artifacts: StartupArtifacts) -> None:
         )
 
     with st.expander("Historical OOS Methodology", expanded=False):
-        st.markdown(
-            "\n".join(
-                [
-                    "- Historical out-of-sample backtest, not a forecast or personalised investment advice.",
-                    "- Long-only, fully invested, no leverage.",
-                    "- Monthly rebalance using saved weights estimated from trailing historical observations.",
-                    "- 10 bps transaction cost per dollar of turnover, already deducted in net returns.",
-                    "- 0% annual risk-free-rate convention for Sharpe calculations.",
-                    f"- OOS sample: {row['sample_start']} to {row['sample_end']}.",
-                    f"- Annualisation convention: {int(row['periods_per_year'])} periods per year.",
-                    f"- {family_caveat(key.family)}",
-                ]
-            )
-        )
+        st.markdown("\n".join(rebalance_methodology_lines(key, row)))
 
     action_left, action_right, _ = st.columns([1.15, 1.15, 2.7])
     with action_left:
@@ -563,19 +558,9 @@ def render_active_stage(stage: str, artifacts: StartupArtifacts) -> None:
     elif stage == "Risk":
         render_risk_fact_sheet(artifacts)
     elif stage == "Signal":
-        render_future_stage(
-            "Signal",
-            "What does the news say across equity sectors?",
-            "Phase 4C",
-            "The shell is intentionally not loading the sector sentiment time series until the Signal stage is implemented.",
-        )
+        render_signal_page()
     elif stage == "Evidence":
-        render_future_stage(
-            "Evidence",
-            "How well does the available evidence support the sentiment reading?",
-            "Phase 4C",
-            "The startup layer includes compact diagnostic cases; the full evidence-confidence artifact remains a later lazy load.",
-        )
+        render_evidence_page(artifacts)
     elif stage == "Decision":
         render_future_stage(
             "Decision",

@@ -1,4 +1,4 @@
-"""Vega-Lite chart specifications for SignalScope Fund and Risk views."""
+"""Vega-Lite chart specifications for SignalScope app views."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ METHOD_SHAPES = {
 }
 
 FUND_SELECTION_NAME = "fund_pick"
+SIGNAL_SELECTION_NAME = "signal_date_pick"
 
 
 def chart_config() -> dict:
@@ -56,7 +57,8 @@ def risk_return_spec() -> dict:
             "type": "quantitative",
             "title": "Annualised volatility",
             "axis": {
-                "format": ".0%",
+                "format": ".1%",
+                "tickCount": 5,
                 "grid": True,
                 "gridColor": "#263831",
                 "labelColor": COLORS["text_secondary"],
@@ -72,7 +74,8 @@ def risk_return_spec() -> dict:
             "type": "quantitative",
             "title": "Annualised historical OOS return",
             "axis": {
-                "format": ".0%",
+                "format": ".1%",
+                "tickCount": 5,
                 "grid": True,
                 "gridColor": "#263831",
                 "labelColor": COLORS["text_secondary"],
@@ -198,7 +201,12 @@ def time_series_spec(y_field: str, y_title: str, y_format: str, color: str, heig
                 "field": "date",
                 "type": "temporal",
                 "title": None,
-                "axis": {"grid": False, "labelColor": COLORS["text_secondary"]},
+                "axis": {
+                    "grid": False,
+                    "labelColor": COLORS["text_secondary"],
+                    "format": "%b %Y",
+                    "labelAngle": -25,
+                },
             },
             "y": {
                 "field": y_field,
@@ -206,6 +214,7 @@ def time_series_spec(y_field: str, y_title: str, y_format: str, color: str, heig
                 "title": y_title,
                 "axis": {
                     "format": y_format,
+                    "tickCount": 5,
                     "grid": True,
                     "gridColor": "#263831",
                     "labelColor": COLORS["text_secondary"],
@@ -247,7 +256,12 @@ def drawdown_spec() -> dict:
                 "field": "date",
                 "type": "temporal",
                 "title": None,
-                "axis": {"grid": False, "labelColor": COLORS["text_secondary"]},
+                "axis": {
+                    "grid": False,
+                    "labelColor": COLORS["text_secondary"],
+                    "format": "%b %Y",
+                    "labelAngle": -25,
+                },
             },
             "y": {
                 "field": "drawdown_net_display",
@@ -255,6 +269,7 @@ def drawdown_spec() -> dict:
                 "title": "Drawdown",
                 "axis": {
                     "format": ".0%",
+                    "tickCount": 5,
                     "grid": True,
                     "gridColor": "#263831",
                     "labelColor": COLORS["text_secondary"],
@@ -288,7 +303,8 @@ def holdings_spec(holdings: pd.DataFrame) -> dict:
                 "type": "quantitative",
                 "title": "Portfolio weight",
                 "axis": {
-                    "format": ".0%",
+                    "format": ".1%",
+                    "tickCount": 5,
                     "grid": True,
                     "gridColor": "#263831",
                     "labelColor": COLORS["text_secondary"],
@@ -365,4 +381,292 @@ def exposure_spec() -> dict:
             },
         ],
         "config": chart_config() | {"legend": chart_config()["legend"] | {"orient": "bottom", "title": None}},
+    }
+
+
+def sentiment_timeline_spec() -> dict:
+    signal_axis = {
+        "field": "sector_sentiment",
+        "type": "quantitative",
+        "title": "Sector sentiment",
+        "axis": {
+            "format": ".2f",
+            "tickCount": 5,
+            "grid": True,
+            "gridColor": "#263831",
+            "labelColor": COLORS["text_secondary"],
+            "titleColor": COLORS["text_primary"],
+        },
+        "scale": {"nice": True, "zero": True},
+    }
+    date_axis = {
+        "field": "date",
+        "type": "temporal",
+        "title": None,
+        "axis": {
+            "grid": False,
+            "labelColor": COLORS["text_secondary"],
+            "format": "%b %Y",
+            "labelAngle": -25,
+        },
+    }
+    return {
+        "background": "transparent",
+        "vconcat": [
+            {
+                "height": 310,
+                "layer": [
+                    {
+                        "mark": {"type": "rule", "stroke": COLORS["control"], "strokeDash": [4, 4]},
+                        "encoding": {"y": {"datum": 0}},
+                    },
+                    {
+                        "transform": [{"filter": "isValid(datum.sector_sentiment)"}],
+                        "mark": {
+                            "type": "line",
+                            "interpolate": "monotone",
+                            "strokeWidth": 2.4,
+                            "color": COLORS["signal"],
+                        },
+                        "encoding": {
+                            "x": date_axis,
+                            "y": signal_axis,
+                            "tooltip": [
+                                {"field": "date", "type": "temporal", "title": "Date"},
+                                {
+                                    "field": "sector",
+                                    "type": "nominal",
+                                    "title": "Sector",
+                                },
+                                {
+                                    "field": "sector_sentiment",
+                                    "type": "quantitative",
+                                    "title": "Sentiment direction",
+                                    "format": ".3f",
+                                },
+                                {
+                                    "field": "active_ticker_count",
+                                    "type": "quantitative",
+                                    "title": "Observed tickers",
+                                },
+                                {
+                                    "field": "headline_count",
+                                    "type": "quantitative",
+                                    "title": "Headlines",
+                                },
+                            ],
+                        },
+                    },
+                    {
+                        "transform": [{"filter": "datum.is_selected_date"}],
+                        "mark": {
+                            "type": "rule",
+                            "strokeWidth": 2,
+                            "color": COLORS["action"],
+                        },
+                        "encoding": {"x": date_axis},
+                    },
+                    {
+                        "transform": [{"filter": "datum.is_selected_date && isValid(datum.sector_sentiment)"}],
+                        "mark": {
+                            "type": "point",
+                            "filled": True,
+                            "size": 130,
+                            "color": COLORS["action"],
+                            "stroke": COLORS["text_primary"],
+                            "strokeWidth": 1.6,
+                        },
+                        "encoding": {"x": date_axis, "y": signal_axis},
+                    },
+                ],
+            },
+            {
+                "height": 38,
+                "layer": [
+                    {
+                        "mark": {
+                            "type": "point",
+                            "filled": True,
+                            "shape": "square",
+                            "size": 22,
+                            "color": COLORS["evidence"],
+                        },
+                        "encoding": {
+                            "x": date_axis,
+                            "y": {"value": 18},
+                            "opacity": {
+                                "field": "active_ticker_share",
+                                "type": "quantitative",
+                                "scale": {"domain": [0, 1], "range": [0.12, 0.95]},
+                                "legend": None,
+                            },
+                            "tooltip": [
+                                {"field": "date", "type": "temporal", "title": "Date"},
+                                {
+                                    "field": "active_ticker_share",
+                                    "type": "quantitative",
+                                    "title": "Active ticker share",
+                                    "format": ".0%",
+                                },
+                                {
+                                    "field": "active_ticker_count",
+                                    "type": "quantitative",
+                                    "title": "Observed tickers",
+                                },
+                                {
+                                    "field": "possible_ticker_count",
+                                    "type": "quantitative",
+                                    "title": "Possible tickers",
+                                },
+                            ],
+                        },
+                    },
+                    {
+                        "transform": [{"filter": "datum.is_selected_date"}],
+                        "mark": {"type": "rule", "strokeWidth": 2, "color": COLORS["action"]},
+                        "encoding": {"x": date_axis},
+                    },
+                ],
+            },
+        ],
+        "resolve": {"scale": {"x": "shared"}},
+        "config": chart_config(),
+    }
+
+
+def allocation_effect_spec() -> dict:
+    return {
+        "background": "transparent",
+        "height": 150,
+        "layer": [
+            {
+                "mark": {"type": "rule", "color": COLORS["control"], "strokeWidth": 1},
+                "encoding": {"x": {"datum": 0}},
+            },
+            {
+                "mark": {"type": "bar", "cornerRadiusEnd": 3},
+                "encoding": {
+                    "x": {
+                        "field": "effect",
+                        "type": "quantitative",
+                        "title": "Allocation effect",
+                        "axis": {
+                            "format": ".1%",
+                            "tickCount": 5,
+                            "grid": True,
+                            "gridColor": "#263831",
+                            "labelColor": COLORS["text_secondary"],
+                            "titleColor": COLORS["text_primary"],
+                        },
+                    },
+                    "y": {
+                        "field": "label",
+                        "type": "nominal",
+                        "title": None,
+                        "sort": [
+                            "Raw sentiment sector allocation change",
+                            "Evidence-adjusted sector allocation change",
+                            "Raw sector change",
+                            "Evidence-adjusted sector change",
+                            "Raw pre-normalisation tilt",
+                            "Evidence-adjusted pre-normalisation tilt",
+                        ],
+                        "axis": {"labelColor": COLORS["text_secondary"], "labelLimit": 220},
+                    },
+                    "color": {
+                        "field": "kind",
+                        "type": "nominal",
+                        "title": None,
+                        "scale": {
+                            "domain": ["raw", "confidence"],
+                            "range": [COLORS["signal"], COLORS["evidence"]],
+                        },
+                        "legend": None,
+                    },
+                    "tooltip": [
+                        {"field": "label", "type": "nominal", "title": "Measure"},
+                        {"field": "effect", "type": "quantitative", "title": "Effect", "format": ".2%"},
+                        {"field": "source", "type": "nominal", "title": "Saved artifact field"},
+                    ],
+                },
+            },
+        ],
+        "config": chart_config(),
+    }
+
+
+def constituent_axis_spec() -> dict:
+    return {
+        "background": "transparent",
+        "height": 150,
+        "layer": [
+            {
+                "mark": {"type": "rule", "color": COLORS["control"], "strokeDash": [4, 4]},
+                "encoding": {"x": {"datum": 0}},
+            },
+            {
+                "mark": {"type": "rule", "color": COLORS["border"], "strokeWidth": 1},
+                "encoding": {"y": {"datum": 0}},
+            },
+            {
+                "mark": {"type": "point", "filled": True, "size": 150, "strokeWidth": 1.4},
+                "encoding": {
+                    "x": {
+                        "field": "ticker_sentiment",
+                        "type": "quantitative",
+                        "title": "Ticker sentiment",
+                        "axis": {
+                            "format": ".1f",
+                            "grid": True,
+                            "gridColor": "#263831",
+                            "labelColor": COLORS["text_secondary"],
+                            "titleColor": COLORS["text_primary"],
+                        },
+                        "scale": {"domain": [-1, 1]},
+                    },
+                    "y": {"field": "lane", "type": "quantitative", "title": None, "axis": None},
+                    "color": {
+                        "condition": {
+                            "test": "datum.ticker_sentiment < 0",
+                            "value": COLORS["negative"],
+                        },
+                        "value": COLORS["evidence"],
+                    },
+                    "stroke": {"value": COLORS["text_primary"]},
+                    "tooltip": [
+                        {"field": "ticker", "type": "nominal", "title": "Ticker"},
+                        {
+                            "field": "ticker_sentiment",
+                            "type": "quantitative",
+                            "title": "Ticker sentiment",
+                            "format": ".3f",
+                        },
+                        {
+                            "field": "headline_count",
+                            "type": "quantitative",
+                            "title": "Headlines",
+                        },
+                    ],
+                },
+            },
+            {
+                "mark": {
+                    "type": "text",
+                    "dy": -16,
+                    "fontSize": 11,
+                    "fontWeight": 700,
+                    "color": COLORS["text_secondary"],
+                },
+                "encoding": {
+                    "x": {
+                        "field": "ticker_sentiment",
+                        "type": "quantitative",
+                        "scale": {"domain": [-1, 1]},
+                    },
+                    "y": {"field": "lane", "type": "quantitative", "axis": None},
+                    "text": {"field": "ticker", "type": "nominal"},
+                },
+            },
+        ],
+        "config": chart_config(),
     }

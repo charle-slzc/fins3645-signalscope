@@ -184,6 +184,129 @@ STARTUP_ARTIFACTS: tuple[ArtifactSpec, ...] = (
     ),
 )
 
+LAZY_ARTIFACTS: dict[str, ArtifactSpec] = {
+    "sector_sentiment_index": ArtifactSpec(
+        key="sector_sentiment_index",
+        relative_path=Path("results/data/sector_sentiment_index.csv"),
+        required_columns=frozenset(
+            {
+                "date",
+                "sector",
+                "sector_sentiment",
+                "active_ticker_count",
+                "headline_count",
+                "cross_ticker_sentiment_std",
+                "possible_ticker_count",
+                "active_ticker_share",
+                "missing_sector_day",
+            }
+        ),
+        expected_bytes=1_456_429,
+        purpose="Signal sector sentiment time series and evidence availability",
+    ),
+    "sector_sentiment_confidence": ArtifactSpec(
+        key="sector_sentiment_confidence",
+        relative_path=Path("results/data/sector_sentiment_confidence.csv"),
+        required_columns=frozenset(
+            {
+                "live_rebalance_date",
+                "signal_cutoff_date",
+                "sector",
+                "s21",
+                "z_star",
+                "b63",
+                "a21",
+                "confidence",
+                "standard_multiplier",
+                "confidence_multiplier",
+                "raw_tilt",
+                "confidence_adjusted_tilt",
+                "breadth_observed_ticker_days",
+                "breadth_possible_ticker_days",
+                "direction_window_start",
+                "direction_window_end",
+                "breadth_window_start",
+                "breadth_window_end",
+            }
+        ),
+        expected_bytes=101_853,
+        purpose="Evidence Lens confidence and raw versus adjusted tilt values",
+    ),
+    "sentiment_weighting_disagreements": ArtifactSpec(
+        key="sentiment_weighting_disagreements",
+        relative_path=Path("results/tables/sentiment_weighting_disagreements.csv"),
+        required_columns=frozenset(
+            {
+                "date",
+                "sector",
+                "equal_ticker_sentiment",
+                "headline_weighted_sentiment",
+                "absolute_difference",
+                "sign_reversal",
+                "responsible_ticker",
+                "sector_headline_count",
+                "sector_active_ticker_count",
+            }
+        ),
+        expected_bytes=12_323,
+        purpose="Signal aggregation disagreement examples",
+    ),
+    "sentiment_weighting_comparison": ArtifactSpec(
+        key="sentiment_weighting_comparison",
+        relative_path=Path("results/tables/sentiment_weighting_comparison.csv"),
+        required_columns=frozenset(
+            {
+                "date",
+                "sector",
+                "sector_sentiment",
+                "headline_weighted_sentiment",
+                "absolute_difference",
+                "sign_reversal",
+            }
+        ),
+        expected_bytes=1_089_112,
+        purpose="Equal-ticker versus headline-weighted direction-change rate",
+    ),
+    "confidence_lens_attenuation_cases": ArtifactSpec(
+        key="confidence_lens_attenuation_cases",
+        relative_path=Path("results/tables/confidence_lens_attenuation_cases.csv"),
+        required_columns=frozenset(
+            {
+                "base_method",
+                "date",
+                "sector",
+                "standard_change",
+                "confidence_change",
+                "z_star",
+                "b63",
+                "a21",
+                "confidence",
+                "raw_tilt",
+                "confidence_adjusted_tilt",
+                "attenuation_ratio",
+                "case_type",
+            }
+        ),
+        expected_bytes=1_528,
+        purpose="Curated Confidence Lens attenuation examples",
+    ),
+    "ticker_day_sentiment": ArtifactSpec(
+        key="ticker_day_sentiment",
+        relative_path=Path("results/data/ticker_day_sentiment.csv"),
+        required_columns=frozenset(
+            {
+                "date",
+                "ticker",
+                "sector",
+                "ticker_sentiment",
+                "headline_count",
+            }
+        ),
+        expected_bytes=3_017_800,
+        purpose="Lazy constituent marks for curated Evidence cases",
+    ),
+}
+
 
 def project_root() -> Path:
     return Path(__file__).resolve().parents[1]
@@ -191,6 +314,10 @@ def project_root() -> Path:
 
 def startup_registry() -> tuple[ArtifactSpec, ...]:
     return STARTUP_ARTIFACTS
+
+
+def lazy_registry() -> dict[str, ArtifactSpec]:
+    return LAZY_ARTIFACTS.copy()
 
 
 def expected_startup_size() -> int:
@@ -276,6 +403,17 @@ def read_artifact(path: Path, spec: ArtifactSpec) -> pd.DataFrame:
     return frame
 
 
+def load_lazy_artifact(key: str, root: Path | None = None) -> pd.DataFrame:
+    root = project_root() if root is None else Path(root)
+    try:
+        spec = LAZY_ARTIFACTS[key]
+    except KeyError as exc:
+        raise ArtifactValidationError(f"Unknown lazy artifact key: {key}") from exc
+    path = resolve_artifact_path(root, spec)
+    validate_artifact_file(path, spec)
+    return read_artifact(path, spec)
+
+
 def load_startup_artifacts(root: Path | None = None) -> StartupArtifacts:
     root = project_root() if root is None else Path(root)
     validate_registry()
@@ -298,3 +436,7 @@ def load_startup_artifacts(root: Path | None = None) -> StartupArtifacts:
 def load_startup_artifacts_cached(root: str | None = None) -> StartupArtifacts:
     return load_startup_artifacts(Path(root) if root else project_root())
 
+
+@st.cache_data(show_spinner=False)
+def load_lazy_artifact_cached(key: str, root: str | None = None) -> pd.DataFrame:
+    return load_lazy_artifact(key, Path(root) if root else project_root())

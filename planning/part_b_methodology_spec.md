@@ -4,6 +4,26 @@ This is an implementation contract for `z5367955_projectB`. It is not the final
 report. Analytical implementation must follow this file unless the student
 approves a later change.
 
+## Phase 1 Locked Decisions
+
+The Station 3A portfolio phase now has approved settings:
+
+- estimation windows: 252 native observations for equity-only funds, 365 native
+  observations for crypto-only funds, and 252 common equity-calendar observations
+  for combined funds;
+- rebalance: monthly, with weights estimated through the previous observation
+  and becoming live on the next valid observation;
+- risk-free rate: 0 percent annual;
+- transaction cost: 10 basis points per dollar of turnover, deducted on the
+  rebalance return date;
+- turnover: sum of absolute changes in active portfolio weights, with initial
+  turnover measured from cash;
+- constraints: long-only, fully invested, no leverage;
+- covariance: sample covariance, with deterministic scale-aware diagonal
+  regularisation only when needed for numerical stability;
+- fallback: deterministic Equal Weight over eligible assets on optimiser failure,
+  with a diagnostic record.
+
 ## 1. End-To-End Data Flow
 
 1. Load raw hosted data only through `src/data_access.py`.
@@ -72,8 +92,8 @@ For every OOS return date, the backtest must:
 - carry the most recent valid weights between rebalance dates;
 - start live OOS performance only after the first estimation window is complete.
 
-The first live backtest date is unresolved because the estimation-window length
-has not yet been approved.
+The first live backtest date is determined by the approved Phase 1 estimation
+window for each family.
 
 ## 6. Rebalance-Date And Weight-Application Convention
 
@@ -85,49 +105,48 @@ The convention to implement after approval:
 - hold weights until the next rebalance date;
 - record both the weight decision date and the first return date affected.
 
-The exact rebalance frequency remains unresolved.
+Phase 1 uses monthly rebalancing.
 
-## 7. Estimation-Window Question To Be Resolved
+## 7. Estimation-Window Rule
 
-Unresolved before coding:
+Phase 1 uses trailing rolling windows:
 
-- expanding window or rolling window;
-- if rolling, the length in trading/calendar days;
-- minimum valid observations per asset;
-- how to handle assets with missing observations inside the window;
-- whether all funds use the same economic start date or their native calendars
-  determine separate starts.
+- equity-only: trailing 252 native equity-return observations;
+- crypto-only: trailing 365 native crypto-return observations;
+- combined: trailing 252 common equity-calendar return observations.
 
-## 8. Risk-Free-Rate Question To Be Resolved
+Eligibility rule: an asset must have finite returns for every observation in the
+estimation window to enter that rebalance. Missing returns are not zero-filled.
+Fund starts are calendar-native: equity and combined funds start after 252
+eligible return observations; crypto starts after 365 native return observations.
 
-Unresolved before coding:
+## 8. Risk-Free-Rate Rule
 
-- use zero risk-free rate, as allowed by the brief; or
-- add an external/proxy risk-free series.
+Phase 1 uses a 0 percent annual risk-free rate. No external risk-free-rate series
+is used.
 
-If a proxy is chosen, source, frequency conversion, calendar alignment, and
-look-ahead timing must be specified and tested.
+## 9. Transaction-Cost Rule
 
-## 9. Transaction-Cost Assumption Question To Be Resolved
+Phase 1 uses a turnover-based cost:
 
-Unresolved before coding:
-
-- zero transaction costs, explicitly stated; or
-- a turnover-based transaction-cost model.
-
-If costs are modelled, the cost rate, turnover formula, deduction timing, and
-asset-family treatment must be approved before implementation.
+- turnover is `sum(abs(new_weight - previous_weight))` across the union of old
+  and new eligible assets;
+- the initial rebalance is measured from cash, so turnover is 1.0 for a fully
+  invested long-only fund;
+- cost is `0.001 * turnover`;
+- cost is deducted from net return on the live rebalance date;
+- gross return, turnover, transaction cost, and net return are all preserved.
 
 ## 10. Portfolio Constraints
 
-Constraints are not yet fully approved. The default candidate constraint set for
-discussion is:
+Phase 1 constraints:
 
 - fully invested weights summing to 1.0;
 - long-only weights between 0.0 and 1.0;
-- optional per-asset maximum weight cap to prevent concentration;
-- no leverage unless explicitly approved;
-- no shorting unless explicitly approved.
+- no leverage;
+- no shorting;
+- no arbitrary asset caps;
+- no equity/crypto sleeve constraints.
 
 Implementation must expose constraints in outputs or diagnostics so the report
 can state them clearly.
@@ -149,15 +168,11 @@ Every optimisation run must record diagnostics:
 - covariance regularisation or condition diagnostic;
 - fallback used flag and fallback reason.
 
-Failure policy to approve before coding:
-
-- whether failed Minimum Variance or Maximum Sharpe reuses prior successful
-  weights, skips the rebalance, or uses a named fallback;
-- whether fallback performance remains in the main fund or is reported
-  separately;
-- threshold for treating near-identical optimised weights as suspicious.
-
-Do not silently replace a failed optimiser with Equal Weight.
+Phase 1 failure policy: failed Minimum Variance or Maximum Sharpe optimisations
+fall back deterministically to Equal Weight over that rebalance's eligible
+assets. The fallback remains in the main fund return stream, but every fallback
+must be visible in diagnostics. Do not silently replace a failed optimiser with
+Equal Weight.
 
 ## 12. Headline Alignment And Sentiment Timing
 
@@ -315,16 +330,8 @@ Add new Part B tests:
 
 ## 19. Remaining Methodological Decisions Requiring Approval
 
-Resolve these before analytical coding:
+Resolve these before sentiment/fusion coding:
 
-- estimation-window type and length;
-- rebalance frequency and exact date rule;
-- risk-free-rate convention;
-- transaction-cost assumption;
-- portfolio constraint set, including weight caps;
-- optimiser fallback policy;
-- covariance regularisation policy;
-- missing return handling inside estimation windows;
 - base equity method for sentiment fusion;
 - sentiment tilt strength;
 - sentiment clipping or scaling rule;

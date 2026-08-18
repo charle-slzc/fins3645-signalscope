@@ -305,6 +305,135 @@ LAZY_ARTIFACTS: dict[str, ArtifactSpec] = {
         expected_bytes=3_017_800,
         purpose="Lazy constituent marks for curated Evidence cases",
     ),
+    "confidence_placebo_comparison": ArtifactSpec(
+        key="confidence_placebo_comparison",
+        relative_path=Path("results/tables/confidence_placebo_comparison.csv"),
+        required_columns=frozenset(
+            {
+                "base_method",
+                "overlay",
+                "annualised_return",
+                "sharpe_ratio",
+                "total_turnover",
+                "observation_count",
+                "sample_start",
+                "sample_end",
+            }
+        ),
+        expected_bytes=5_056,
+        purpose="Challenge performance comparison for Base, Standard, placebo, and Confidence",
+    ),
+    "confidence_placebo_turnover_decomposition": ArtifactSpec(
+        key="confidence_placebo_turnover_decomposition",
+        relative_path=Path("results/tables/confidence_placebo_turnover_decomposition.csv"),
+        required_columns=frozenset(
+            {
+                "base_method",
+                "base_total_turnover",
+                "standard_total_turnover",
+                "placebo_total_turnover",
+                "confidence_total_turnover",
+                "standard_to_confidence_turnover_reduction",
+                "constant_shrinkage_explained_percent",
+            }
+        ),
+        expected_bytes=828,
+        purpose="Challenge turnover and disturbance decomposition",
+    ),
+    "confidence_placebo_selectivity": ArtifactSpec(
+        key="confidence_placebo_selectivity",
+        relative_path=Path("results/tables/confidence_placebo_selectivity.csv"),
+        required_columns=frozenset(
+            {
+                "live_rebalance_date",
+                "signal_cutoff_date",
+                "sector",
+                "z_star",
+                "standard_tilt",
+                "placebo_tilt",
+                "confidence_tilt",
+                "confidence",
+                "c_match",
+                "selective_deviation",
+                "confidence_group",
+            }
+        ),
+        expected_bytes=107_455,
+        purpose="Challenge aggregate signal match and selectivity distribution",
+    ),
+    "confidence_placebo_quadrants": ArtifactSpec(
+        key="confidence_placebo_quadrants",
+        relative_path=Path("results/tables/confidence_placebo_quadrants.csv"),
+        required_columns=frozenset(
+            {
+                "quadrant",
+                "observation_count",
+                "average_confidence",
+                "average_abs_placebo_tilt",
+                "average_abs_confidence_tilt",
+                "average_selective_deviation",
+            }
+        ),
+        expected_bytes=953,
+        purpose="Challenge evidence-state summary by breadth and agreement",
+    ),
+    "confidence_placebo_cases": ArtifactSpec(
+        key="confidence_placebo_cases",
+        relative_path=Path("results/tables/confidence_placebo_cases.csv"),
+        required_columns=frozenset(
+            {
+                "case_type",
+                "base_method",
+                "date",
+                "sector",
+                "z_star",
+                "confidence",
+                "c_match",
+                "placebo_multiplier",
+                "confidence_multiplier",
+                "selective_deviation",
+                "case_selection_rule",
+            }
+        ),
+        expected_bytes=3_677,
+        purpose="Challenge real case pair for dynamic attenuation and preservation",
+    ),
+    "confidence_placebo_sector_year": ArtifactSpec(
+        key="confidence_placebo_sector_year",
+        relative_path=Path("results/tables/confidence_placebo_sector_year.csv"),
+        required_columns=frozenset(
+            {
+                "scope",
+                "bucket",
+                "observation_count",
+                "average_confidence",
+                "average_selective_deviation",
+                "proportion_c_below_c_match",
+            }
+        ),
+        expected_bytes=1_002,
+        purpose="Optional Challenge sector and year selectivity detail",
+    ),
+    "fusion_placebo_returns": ArtifactSpec(
+        key="fusion_placebo_returns",
+        relative_path=Path("results/data/fusion_placebo_returns.csv"),
+        required_columns=frozenset(
+            {
+                "date",
+                "gross_return",
+                "turnover",
+                "transaction_cost",
+                "net_return",
+                "base_method",
+                "overlay",
+                "tilt_strength",
+                "growth_net",
+                "drawdown_net",
+            }
+        ),
+        expected_bytes=847_232,
+        purpose="Optional Challenge return-path detail",
+    ),
 }
 
 

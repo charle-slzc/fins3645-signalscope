@@ -474,7 +474,8 @@ def test_decision_three_funds_remove_and_navigation_paths():
     app = open_stage(run_app(), "Decision")
     app = click_button_by_label(app, "Challenge the model")
     assert segmented_control_by_label(app, "Journey").value == "Challenge"
-    assert "Phase 4E" in rendered_text(app)
+    assert "Does the cleverer model actually earn its complexity?" in rendered_text(app)
+    assert "Phase 4E" not in rendered_text(app)
 
 
 def test_existing_product_stages_still_render_after_decision_addition():

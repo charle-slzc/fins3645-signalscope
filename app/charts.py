@@ -22,6 +22,10 @@ METHOD_SHAPES = {
 
 DECISION_HOLDINGS_COLOR = "#6b7772"
 DECISION_OVERLAP_COLOR = "#77827d"
+CHALLENGE_BASE_COLOR = "#b7c0bb"
+CHALLENGE_CONTROL_COLOR = "#8f9a96"
+CHALLENGE_CONFIDENCE_COLOR = "#b7a467"
+CHALLENGE_STANDARD_COLOR = "#70818a"
 
 FUND_SELECTION_NAME = "fund_pick"
 SIGNAL_SELECTION_NAME = "signal_date_pick"
@@ -774,6 +778,239 @@ def decision_method_exposure_spec() -> dict:
             "tooltip": [
                 {"field": "method", "type": "nominal", "title": "Construction method"},
                 {"field": "capital_weight", "type": "quantitative", "title": "Capital allocation", "format": ".1%"},
+            ],
+        },
+        "config": chart_config(),
+    }
+
+
+def challenge_performance_spec() -> dict:
+    return {
+        "background": "transparent",
+        "height": 210,
+        "layer": [
+            {
+                "mark": {"type": "bar", "cornerRadiusEnd": 3},
+                "encoding": {
+                    "x": {
+                        "field": "sharpe_ratio",
+                        "type": "quantitative",
+                        "title": "Sharpe ratio",
+                        "axis": {
+                            "format": ".3f",
+                            "tickCount": 5,
+                            "grid": True,
+                            "gridColor": "#263831",
+                            "labelColor": COLORS["text_secondary"],
+                            "titleColor": COLORS["text_primary"],
+                        },
+                        "scale": {"zero": True, "nice": False},
+                    },
+                    "y": {
+                        "field": "overlay_display",
+                        "type": "nominal",
+                        "title": None,
+                        "sort": {"field": "order", "order": "ascending"},
+                        "axis": {"labelLimit": 210, "labelColor": COLORS["text_secondary"]},
+                    },
+                    "color": {
+                        "field": "overlay_display",
+                        "type": "nominal",
+                        "title": None,
+                        "scale": {
+                            "domain": ["Base", "Standard sentiment", "Matched constant", "Confidence"],
+                            "range": [
+                                CHALLENGE_BASE_COLOR,
+                                CHALLENGE_STANDARD_COLOR,
+                                CHALLENGE_CONTROL_COLOR,
+                                CHALLENGE_CONFIDENCE_COLOR,
+                            ],
+                        },
+                        "legend": None,
+                    },
+                    "tooltip": [
+                        {"field": "overlay_display", "type": "nominal", "title": "Portfolio state"},
+                        {"field": "sharpe_ratio", "type": "quantitative", "title": "Sharpe", "format": ".6f"},
+                        {
+                            "field": "annualised_return",
+                            "type": "quantitative",
+                            "title": "Annualised return",
+                            "format": ".2%",
+                        },
+                        {
+                            "field": "total_turnover",
+                            "type": "quantitative",
+                            "title": "Total turnover",
+                            "format": ".3f",
+                        },
+                    ],
+                },
+            },
+            {
+                "mark": {
+                    "type": "text",
+                    "align": "left",
+                    "baseline": "middle",
+                    "dx": 7,
+                    "fontSize": 12,
+                    "fontWeight": 700,
+                    "color": COLORS["text_primary"],
+                },
+                "encoding": {
+                    "x": {"field": "sharpe_ratio", "type": "quantitative"},
+                    "y": {
+                        "field": "overlay_display",
+                        "type": "nominal",
+                        "sort": {"field": "order", "order": "ascending"},
+                    },
+                    "text": {"field": "sharpe_label", "type": "nominal"},
+                },
+            },
+        ],
+        "config": chart_config(),
+    }
+
+
+def challenge_matched_strength_spec() -> dict:
+    return {
+        "background": "transparent",
+        "height": 120,
+        "mark": {"type": "bar", "cornerRadiusEnd": 3},
+        "encoding": {
+            "x": {
+                "field": "absolute_tilt_sum",
+                "type": "quantitative",
+                "title": "Total absolute pre-normalisation signal tilt",
+                "axis": {
+                    "format": ".3f",
+                    "tickCount": 4,
+                    "grid": True,
+                    "gridColor": "#263831",
+                    "labelColor": COLORS["text_secondary"],
+                    "titleColor": COLORS["text_primary"],
+                },
+                "scale": {"zero": True, "nice": False},
+            },
+            "y": {
+                "field": "label",
+                "type": "nominal",
+                "title": None,
+                "sort": ["Confidence", "Matched constant"],
+                "axis": {"labelLimit": 180, "labelColor": COLORS["text_secondary"]},
+            },
+            "color": {
+                "field": "label",
+                "type": "nominal",
+                "title": None,
+                "scale": {
+                    "domain": ["Confidence", "Matched constant"],
+                    "range": [CHALLENGE_CONFIDENCE_COLOR, CHALLENGE_CONTROL_COLOR],
+                },
+                "legend": None,
+            },
+            "tooltip": [
+                {"field": "label", "type": "nominal", "title": "Rule"},
+                {
+                    "field": "absolute_tilt_sum",
+                    "type": "quantitative",
+                    "title": "Absolute tilt sum",
+                    "format": ".12f",
+                },
+            ],
+        },
+        "config": chart_config(),
+    }
+
+
+def challenge_selectivity_split_spec() -> dict:
+    return {
+        "background": "transparent",
+        "height": 78,
+        "mark": {"type": "bar", "cornerRadius": 4},
+        "encoding": {
+            "x": {
+                "field": "share",
+                "type": "quantitative",
+                "stack": "normalize",
+                "title": None,
+                "axis": None,
+            },
+            "y": {"value": 30},
+            "color": {
+                "field": "state",
+                "type": "nominal",
+                "title": None,
+                "scale": {
+                    "domain": ["More conservative than matched constant", "More permissive than matched constant"],
+                    "range": [CHALLENGE_CONTROL_COLOR, CHALLENGE_CONFIDENCE_COLOR],
+                },
+                "legend": {"orient": "bottom", "title": None},
+            },
+            "tooltip": [
+                {"field": "state", "type": "nominal", "title": "State"},
+                {"field": "count", "type": "quantitative", "title": "Observations"},
+                {"field": "share", "type": "quantitative", "title": "Share", "format": ".1%"},
+            ],
+        },
+        "config": chart_config(),
+    }
+
+
+def challenge_case_magnitude_spec() -> dict:
+    return {
+        "background": "transparent",
+        "height": 210,
+        "mark": {"type": "bar", "cornerRadiusEnd": 3},
+        "encoding": {
+            "x": {
+                "field": "signed_signal_magnitude",
+                "type": "quantitative",
+                "title": "Directional signal magnitude from neutral",
+                "axis": {
+                    "format": ".0%",
+                    "tickCount": 5,
+                    "grid": True,
+                    "gridColor": "#263831",
+                    "labelColor": COLORS["text_secondary"],
+                    "titleColor": COLORS["text_primary"],
+                },
+                "scale": {"zero": True, "nice": True},
+            },
+            "y": {
+                "field": "case_label",
+                "type": "nominal",
+                "title": None,
+                "sort": ["Extra attenuation", "Extra preservation"],
+                "axis": {"labelLimit": 180, "labelColor": COLORS["text_secondary"]},
+            },
+            "color": {
+                "field": "rule",
+                "type": "nominal",
+                "title": None,
+                "scale": {
+                    "domain": ["Matched constant", "Confidence"],
+                    "range": [CHALLENGE_CONTROL_COLOR, CHALLENGE_CONFIDENCE_COLOR],
+                },
+                "legend": {"orient": "bottom", "title": None},
+            },
+            "yOffset": {"field": "rule"},
+            "tooltip": [
+                {"field": "case_label", "type": "nominal", "title": "Case"},
+                {"field": "sector_date", "type": "nominal", "title": "Sector/date"},
+                {"field": "rule", "type": "nominal", "title": "Rule"},
+                {
+                    "field": "signal_magnitude",
+                    "type": "quantitative",
+                    "title": "Signal magnitude from neutral",
+                    "format": ".1%",
+                },
+                {
+                    "field": "signed_signal_magnitude",
+                    "type": "quantitative",
+                    "title": "Directional magnitude",
+                    "format": ".1%",
+                },
+                {"field": "confidence", "type": "quantitative", "title": "Evidence confidence", "format": ".6f"},
             ],
         },
         "config": chart_config(),

@@ -949,6 +949,226 @@ button[kind="secondary"] {
 .ss-overlap-insight strong {
   color: var(--ss-text-primary);
 }
+.ss-challenge-thesis {
+  margin: 0.7rem 0 1rem;
+  padding: 0.88rem 0;
+  border-top: 1px solid var(--ss-border);
+  border-bottom: 1px solid var(--ss-border);
+  color: var(--ss-text-primary);
+  font-size: 1.05rem;
+  font-weight: 720;
+  line-height: 1.45;
+}
+.ss-verdict-stack {
+  display: grid;
+  gap: 0;
+  margin: 0.55rem 0 1.1rem;
+  border-top: 1px solid var(--ss-border);
+}
+.ss-verdict-row {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) 8.5rem;
+  gap: 1rem;
+  padding: 0.88rem 0;
+  border-bottom: 1px solid var(--ss-border);
+}
+.ss-verdict-number {
+  color: var(--ss-control);
+  font-size: 0.82rem;
+  font-weight: 780;
+}
+.ss-verdict-question {
+  color: var(--ss-text-primary);
+  font-size: 1rem;
+  font-weight: 760;
+  line-height: 1.25;
+}
+.ss-verdict-evidence {
+  margin-top: 0.24rem;
+  color: var(--ss-text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.42;
+}
+.ss-verdict-answer {
+  color: var(--ss-text-primary);
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: right;
+}
+.ss-match-statement {
+  margin: 0.65rem 0 0.85rem;
+  padding: 0.82rem 0.92rem;
+  border: 1px solid var(--ss-border);
+  border-left: 4px solid var(--ss-control);
+  border-radius: var(--ss-radius);
+  background: rgba(143, 154, 150, 0.1);
+  color: var(--ss-text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.ss-match-statement strong {
+  color: var(--ss-text-primary);
+}
+.ss-equality-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 0.82fr);
+  gap: 0.7rem;
+  align-items: center;
+  margin: 0.7rem 0 1rem;
+  padding: 0.82rem 0;
+  border-top: 1px solid var(--ss-border);
+  border-bottom: 1px solid var(--ss-border);
+}
+.ss-equality-strip div {
+  padding: 0.55rem 0.7rem;
+  background: rgba(143, 154, 150, 0.1);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+}
+.ss-equality-strip span,
+.ss-equality-strip strong {
+  display: block;
+}
+.ss-equality-strip span {
+  color: var(--ss-text-tertiary);
+  font-size: 0.74rem;
+  font-weight: 720;
+}
+.ss-equality-strip strong {
+  margin-top: 0.12rem;
+  color: var(--ss-text-primary);
+  font-size: 1.55rem;
+  line-height: 1;
+}
+.ss-equality-strip i {
+  color: var(--ss-control);
+  font-size: 1.5rem;
+  font-style: normal;
+  font-weight: 780;
+}
+.ss-survived {
+  margin: 0.85rem 0 1rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--ss-border);
+  border-left: 4px solid var(--ss-evidence);
+  border-radius: var(--ss-radius);
+  background: var(--ss-surface-deep);
+}
+.ss-survived strong {
+  display: block;
+  color: var(--ss-text-primary);
+  font-size: 1.08rem;
+  line-height: 1.25;
+}
+.ss-survived span {
+  display: block;
+  margin-top: 0.28rem;
+  color: var(--ss-text-secondary);
+  font-size: 0.93rem;
+  line-height: 1.45;
+}
+.ss-case-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin: 0.75rem 0 1rem;
+}
+.ss-challenge-case {
+  padding: 0.82rem 0;
+  border-top: 1px solid var(--ss-border);
+  border-bottom: 1px solid var(--ss-border);
+}
+.ss-challenge-case span {
+  display: block;
+  color: var(--ss-text-tertiary);
+  font-size: 0.74rem;
+  font-weight: 730;
+}
+.ss-challenge-case strong {
+  display: block;
+  margin: 0.18rem 0;
+  color: var(--ss-text-primary);
+  font-size: 1rem;
+}
+.ss-challenge-case p {
+  margin: 0.32rem 0 0;
+  color: var(--ss-text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.38;
+}
+.ss-split-visual {
+  margin: 0.6rem 0 0.8rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--ss-border);
+  border-bottom: 1px solid var(--ss-border);
+}
+.ss-split-track {
+  display: flex;
+  width: 100%;
+  height: 1.45rem;
+  overflow: hidden;
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+  background: var(--ss-surface-deep);
+}
+.ss-split-track span {
+  display: block;
+  min-width: 0.35rem;
+}
+.ss-split-track .is-conservative {
+  background: var(--ss-control);
+}
+.ss-split-track .is-permissive {
+  background: var(--ss-evidence);
+}
+.ss-split-labels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+}
+.ss-split-labels strong,
+.ss-split-labels span {
+  display: block;
+}
+.ss-split-labels strong {
+  color: var(--ss-text-primary);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+.ss-split-labels span {
+  margin-top: 0.16rem;
+  color: var(--ss-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+.ss-magnitude-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0.52rem 0 0.45rem;
+}
+.ss-magnitude-value {
+  padding: 0.54rem 0.62rem;
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+  background: rgba(143, 154, 150, 0.1);
+}
+.ss-magnitude-value span,
+.ss-magnitude-value strong {
+  display: block;
+}
+.ss-magnitude-value span {
+  color: var(--ss-text-tertiary);
+  font-size: 0.73rem;
+  font-weight: 710;
+}
+.ss-magnitude-value strong {
+  margin-top: 0.12rem;
+  color: var(--ss-text-primary);
+  font-size: 1.15rem;
+  line-height: 1;
+}
 @media (max-width: 760px) {
   .block-container {
     padding-left: 1rem;
@@ -972,9 +1192,17 @@ button[kind="secondary"] {
   .ss-lens-step,
   .ss-case-row,
   .ss-structure-summary,
-  .ss-anatomy-flow {
+  .ss-anatomy-flow,
+  .ss-verdict-row,
+  .ss-case-pair,
+  .ss-equality-strip,
+  .ss-split-labels,
+  .ss-magnitude-row {
     grid-template-columns: 1fr;
     gap: 0.25rem;
+  }
+  .ss-verdict-answer {
+    text-align: left;
   }
   .ss-anatomy-flow i {
     width: 100%;

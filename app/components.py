@@ -8,6 +8,7 @@ import streamlit as st
 
 from app import charts
 from app import design
+from app.challenge import render_challenge_page
 from app.decision import render_decision_page
 from app.evidence import render_evidence_page
 from app.signal import render_signal_page
@@ -565,9 +566,4 @@ def render_active_stage(stage: str, artifacts: StartupArtifacts) -> None:
     elif stage == "Decision":
         render_decision_page(artifacts)
     elif stage == "Challenge":
-        render_future_stage(
-            "Challenge",
-            "Did the sentiment innovation really add investment value?",
-            "Phase 4E",
-            "The challenge view will load falsification artifacts only when this stage is built and opened.",
-        )
+        render_challenge_page()

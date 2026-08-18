@@ -144,6 +144,65 @@ def filter_metrics(metrics: pd.DataFrame, family_filter: str, method_filter: str
     return filtered.reset_index(drop=True)
 
 
+def fund_key_id(key: FundKey) -> str:
+    return f"{key.family}|{key.method}"
+
+
+def deterministic_filtered_selection(
+    metrics: pd.DataFrame,
+    current: FundKey,
+    family_filter: str,
+    method_filter: str,
+) -> tuple[FundKey, pd.DataFrame]:
+    """Apply filters and preserve the current fund when it remains eligible."""
+    filtered = filter_metrics(metrics, family_filter, method_filter)
+    if filtered.empty:
+        filtered = metrics.copy().reset_index(drop=True)
+    options = available_funds(filtered)
+    if current in options:
+        return current, filtered
+    if not options:
+        raise KeyError("No funds match the current filters.")
+    return options[0], filtered
+
+
+def _padded_domain(
+    values: pd.Series,
+    floor: float = 0.025,
+    lower_bound: float | None = None,
+) -> list[float]:
+    clean = pd.to_numeric(values, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+    if clean.empty:
+        return [0.0, 1.0]
+    minimum = float(clean.min())
+    maximum = float(clean.max())
+    if abs(maximum - minimum) < 1e-12:
+        centre = minimum
+        padding = max(abs(centre) * 0.08, floor)
+        low = centre - padding
+        high = centre + padding
+    else:
+        span = maximum - minimum
+        padding = max(span * 0.35, floor)
+        low = minimum - padding
+        high = maximum + padding
+    if lower_bound is not None:
+        low = max(lower_bound, low)
+    if high <= low:
+        high = low + floor * 2
+    return [low, high]
+
+
+def risk_return_axis_domains(frame: pd.DataFrame) -> tuple[list[float] | None, list[float] | None]:
+    """Return adaptive domains for narrow filter states; leave full map unchanged."""
+    if len(frame) > 3:
+        return None, None
+    return (
+        _padded_domain(frame["volatility_pct"], lower_bound=0.0),
+        _padded_domain(frame["return_pct"]),
+    )
+
+
 def comparison_frame(metrics: pd.DataFrame, selected: FundKey) -> pd.DataFrame:
     frame = metrics.copy()
     frame["family_label"] = frame["fund_family"].map(display_family)

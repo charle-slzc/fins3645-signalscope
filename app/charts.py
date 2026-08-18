@@ -57,7 +57,19 @@ def chart_config() -> dict:
     }
 
 
-def risk_return_spec() -> dict:
+def risk_return_spec(
+    x_domain: list[float] | None = None,
+    y_domain: list[float] | None = None,
+    single_fund: bool = False,
+) -> dict:
+    x_scale = {"zero": False, "nice": True}
+    y_scale = {"zero": False, "nice": True}
+    if x_domain is not None:
+        x_scale = {"zero": False, "nice": False, "domain": x_domain}
+    if y_domain is not None:
+        y_scale = {"zero": False, "nice": False, "domain": y_domain}
+    selected_size = 180 if single_fund else 230
+    default_size = 95 if single_fund else 105
     point_encoding = {
         "x": {
             "field": "volatility_pct",
@@ -74,7 +86,7 @@ def risk_return_spec() -> dict:
                 "labelFontSize": 12,
                 "titleFontSize": 13,
             },
-            "scale": {"zero": False, "nice": True},
+            "scale": x_scale,
         },
         "y": {
             "field": "return_pct",
@@ -91,7 +103,7 @@ def risk_return_spec() -> dict:
                 "labelFontSize": 12,
                 "titleFontSize": 13,
             },
-            "scale": {"zero": False, "nice": True},
+            "scale": y_scale,
         },
         "color": {
             "field": "family_label",
@@ -112,8 +124,8 @@ def risk_return_spec() -> dict:
             },
         },
         "size": {
-            "condition": {"test": "datum.is_selected", "value": 230},
-            "value": 105,
+            "condition": {"test": "datum.is_selected", "value": selected_size},
+            "value": default_size,
         },
         "stroke": {
             "condition": {"test": "datum.is_selected", "value": COLORS["action"]},

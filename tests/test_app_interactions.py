@@ -3,6 +3,9 @@ from pathlib import Path
 from streamlit.testing.v1 import AppTest
 import pandas as pd
 
+from app import components
+from app import funds
+
 
 def run_app() -> AppTest:
     app = AppTest.from_file("streamlit_app.py")
@@ -105,6 +108,124 @@ def test_method_filters_combine_with_family_filter():
     assert not app.exception
     assert segmented_control_by_label(app, "Method").value == "All"
     assert selectbox_by_label(app, "Selected fund").value.startswith("Combined /")
+
+
+def test_fund_dropdown_change_updates_authoritative_state_and_risk_target():
+    app = run_app()
+
+    selectbox_by_label(app, "Selected fund").select("Equity / Equal Weight").run(timeout=20)
+    assert not app.exception
+    assert selectbox_by_label(app, "Selected fund").value == "Equity / Equal Weight"
+    assert session_state_value(app, "selected_fund_family") == "Equity-only"
+    assert session_state_value(app, "selected_fund_method") == "Equal Weight"
+
+    selectbox_by_label(app, "Selected fund").select("Combined / Equal Weight").run(timeout=20)
+    assert not app.exception
+    assert selectbox_by_label(app, "Selected fund").value == "Combined / Equal Weight"
+    assert session_state_value(app, "selected_fund_family") == "Combined"
+    assert session_state_value(app, "selected_fund_method") == "Equal Weight"
+    assert "Selected: Combined / Equal Weight." in rendered_text(app)
+
+    app = click_button_by_label(app, "Open fact sheet")
+    assert not app.exception
+    assert segmented_control_by_label(app, "Journey").value == "Risk"
+    assert "**Combined / Equal Weight**" in rendered_text(app)
+
+
+def test_fund_filter_transitions_keep_dropdown_state_and_single_focus_mode_consistent():
+    app = run_app()
+
+    selectbox_by_label(app, "Selected fund").select("Crypto / Equal Weight").run(timeout=20)
+    assert not app.exception
+    assert selectbox_by_label(app, "Selected fund").value == "Crypto / Equal Weight"
+    assert session_state_value(app, "selected_fund_family") == "Crypto-only"
+    assert session_state_value(app, "selected_fund_method") == "Equal Weight"
+
+    segmented_control_by_label(app, "Family").select("Crypto").run(timeout=20)
+    segmented_control_by_label(app, "Method").select("Equal Weight").run(timeout=20)
+    assert not app.exception
+    assert selectbox_by_label(app, "Selected fund").value == "Crypto / Equal Weight"
+    assert "One fund matches the active filters." in rendered_text(app)
+    assert "Selected: Crypto / Equal Weight." in rendered_text(app)
+
+    segmented_control_by_label(app, "Family").select("Combined").run(timeout=20)
+    segmented_control_by_label(app, "Method").select("Maximum Sharpe").run(timeout=20)
+    assert not app.exception
+    assert selectbox_by_label(app, "Selected fund").value == "Combined / Maximum Sharpe"
+    assert session_state_value(app, "selected_fund_family") == "Combined"
+    assert session_state_value(app, "selected_fund_method") == "Maximum Sharpe"
+    assert "One fund matches the active filters." in rendered_text(app)
+
+    segmented_control_by_label(app, "Family").select("All").run(timeout=20)
+    segmented_control_by_label(app, "Method").select("All").run(timeout=20)
+    assert not app.exception
+    assert selectbox_by_label(app, "Selected fund").value == "Combined / Maximum Sharpe"
+    assert "One fund matches the active filters." not in rendered_text(app)
+    assert "Selected: Combined / Maximum Sharpe." in rendered_text(app)
+
+
+def test_chart_click_precedence_rules_ignore_stale_chart_after_explicit_widgets():
+    selected = funds.FundKey("Combined", "Equal Weight")
+    clicked = funds.FundKey("Crypto-only", "Equal Weight")
+
+    assert components.chart_click_should_update(
+        clicked,
+        selected,
+        dropdown_changed=False,
+        filter_changed=False,
+    )
+    assert not components.chart_click_should_update(
+        clicked,
+        selected,
+        dropdown_changed=True,
+        filter_changed=False,
+    )
+    assert not components.chart_click_should_update(
+        clicked,
+        selected,
+        dropdown_changed=False,
+        filter_changed=True,
+    )
+    assert not components.chart_click_should_update(
+        selected,
+        selected,
+        dropdown_changed=False,
+        filter_changed=False,
+    )
+
+
+def test_chart_selection_event_syncs_authoritative_fund_state(monkeypatch):
+    state = {
+        components.FUND_CHART_VERSION_KEY: 0,
+        "risk_return_map_0": {
+            "selection": {
+                "fund_pick": {"fund_key": ["Crypto-only|Equal Weight"]},
+            }
+        },
+        components.SELECTED_FUND_FAMILY_KEY: "Combined",
+        components.SELECTED_FUND_METHOD_KEY: "Equal Weight",
+    }
+    monkeypatch.setattr(components.st, "session_state", state)
+    perf = project_artifact("results/tables/performance_metrics.csv")
+
+    changed = components.sync_selected_fund_from_chart(perf)
+
+    assert changed is True
+    assert state[components.SELECTED_FUND_FAMILY_KEY] == "Crypto-only"
+    assert state[components.SELECTED_FUND_METHOD_KEY] == "Equal Weight"
+    assert state[components.SELECTED_FUND_LABEL_KEY] == "Crypto / Equal Weight"
+    assert state[components.FUND_CHANGE_SOURCE_KEY] == "chart"
+
+
+def test_decision_starting_fund_uses_current_authoritative_fund_key():
+    app = run_app()
+
+    selectbox_by_label(app, "Selected fund").select("Combined / Maximum Sharpe").run(timeout=20)
+    assert not app.exception
+
+    app = open_stage(app, "Decision")
+    assert not app.exception
+    assert selectbox_by_label(app, "Sleeve 1").value == "Combined / Maximum Sharpe"
 
 
 def test_manual_selected_fund_syncs_to_risk_fact_sheet():

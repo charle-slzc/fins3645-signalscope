@@ -111,6 +111,73 @@ def test_comparison_frame_marks_selected_fund_and_stable_key():
     assert frame["is_selected"].tolist() == [False, True]
 
 
+def test_filtered_selection_preserves_or_replaces_authoritative_key_deterministically():
+    metrics = pd.read_csv(project_root() / "results/tables/performance_metrics.csv")
+
+    selected = funds.FundKey("Combined", "Equal Weight")
+    preserved, preserved_frame = funds.deterministic_filtered_selection(
+        metrics, selected, "All", "All"
+    )
+    assert preserved == selected
+    assert len(preserved_frame) == 9
+
+    replacement, replacement_frame = funds.deterministic_filtered_selection(
+        metrics, selected, "Crypto", "Equal Weight"
+    )
+    assert replacement == funds.FundKey("Crypto-only", "Equal Weight")
+    assert replacement_frame[["fund_family", "method"]].drop_duplicates().values.tolist() == [
+        ["Crypto-only", "Equal Weight"]
+    ]
+
+    retained, retained_frame = funds.deterministic_filtered_selection(
+        metrics, funds.FundKey("Crypto-only", "Equal Weight"), "All", "All"
+    )
+    assert retained == funds.FundKey("Crypto-only", "Equal Weight")
+    assert len(retained_frame) == 9
+
+
+def test_chart_frame_selected_flag_and_direct_label_source_follow_authoritative_key():
+    metrics = pd.read_csv(project_root() / "results/tables/performance_metrics.csv")
+    selected = funds.FundKey("Combined", "Equal Weight")
+    frame = funds.comparison_frame(funds.filter_metrics(metrics, "All", "All"), selected)
+
+    highlighted = frame[frame["is_selected"]]
+
+    assert len(frame) == 9
+    assert highlighted["fund_key"].tolist() == [funds.fund_key_id(selected)]
+    assert highlighted["fund_label"].tolist() == ["Combined / Equal Weight"]
+
+
+def test_risk_return_axis_domains_are_adaptive_only_for_small_filter_states():
+    metrics = pd.read_csv(project_root() / "results/tables/performance_metrics.csv")
+
+    full_frame = funds.comparison_frame(metrics, funds.FundKey("Combined", "Equal Weight"))
+    assert funds.risk_return_axis_domains(full_frame) == (None, None)
+
+    single_frame = funds.comparison_frame(
+        funds.filter_metrics(metrics, "Crypto", "Equal Weight"),
+        funds.FundKey("Crypto-only", "Equal Weight"),
+    )
+    x_domain, y_domain = funds.risk_return_axis_domains(single_frame)
+    row = single_frame.iloc[0]
+    assert len(single_frame) == 1
+    assert x_domain[0] < row["volatility_pct"] < x_domain[1]
+    assert y_domain[0] < row["return_pct"] < y_domain[1]
+    assert x_domain[1] - x_domain[0] > 0.02
+    assert y_domain[1] - y_domain[0] > 0.02
+
+    small_frame = funds.comparison_frame(
+        funds.filter_metrics(metrics, "Combined", "All"),
+        funds.FundKey("Combined", "Maximum Sharpe"),
+    )
+    x_domain, y_domain = funds.risk_return_axis_domains(small_frame)
+    assert len(small_frame) == 3
+    assert x_domain[0] <= small_frame["volatility_pct"].min()
+    assert x_domain[1] >= small_frame["volatility_pct"].max()
+    assert y_domain[0] <= small_frame["return_pct"].min()
+    assert y_domain[1] >= small_frame["return_pct"].max()
+
+
 def test_chart_selection_event_parsing_handles_native_shapes():
     metrics = pd.DataFrame(
         {
@@ -168,6 +235,29 @@ def test_risk_return_spec_defines_native_selection_and_dark_labels():
     assert "Historical OOS annualised return" in {
         item["title"] for item in spec["layer"][0]["encoding"]["tooltip"]
     }
+
+
+def test_risk_return_spec_accepts_adaptive_domains_and_single_fund_size():
+    spec = charts.risk_return_spec(
+        x_domain=[0.75, 0.87],
+        y_domain=[0.29, 0.39],
+        single_fund=True,
+    )
+
+    json.dumps(spec)
+    alt.Chart.from_dict(spec, validate=True)
+    point_encoding = spec["layer"][0]["encoding"]
+    assert point_encoding["x"]["scale"] == {
+        "zero": False,
+        "nice": False,
+        "domain": [0.75, 0.87],
+    }
+    assert point_encoding["y"]["scale"] == {
+        "zero": False,
+        "nice": False,
+        "domain": [0.29, 0.39],
+    }
+    assert point_encoding["size"]["condition"]["value"] == 180
 
 
 def test_growth_drawdown_and_holdings_axes_use_non_ambiguous_labels():

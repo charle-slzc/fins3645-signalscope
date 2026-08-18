@@ -96,6 +96,9 @@ def css() -> str:
   --ss-family-combined: #6fa7bc;
   --ss-radius: 8px;
   --ss-top-safe: clamp(3rem, 5.2vh, 4rem);
+  --ss-space-micro: 0.32rem;
+  --ss-space-control: 0.55rem;
+  --ss-space-section: 1.05rem;
   --ss-space-1: 0.5rem;
   --ss-space-2: 1rem;
   --ss-space-3: 1.5rem;
@@ -123,6 +126,31 @@ p, li, label,
 .stCaption,
 small {
   color: var(--ss-text-tertiary) !important;
+}
+[data-testid="stCaptionContainer"] {
+  margin-top: var(--ss-space-micro);
+}
+[data-testid="stWidgetLabel"] {
+  margin-bottom: 0.22rem;
+}
+[data-testid="stSelectbox"],
+[data-testid="stNumberInput"],
+[data-testid="stButton"] {
+  margin-bottom: var(--ss-space-control);
+}
+[data-testid="stExpander"] {
+  margin: var(--ss-space-control) 0 var(--ss-space-section);
+}
+.stAlert,
+.ss-panel,
+.ss-disclosure,
+.ss-warning,
+.ss-overlap-insight,
+.ss-decision-narrative,
+.ss-match-statement,
+.ss-survived,
+.ss-single-fund-focus {
+  margin-bottom: var(--ss-space-control);
 }
 button[kind="primary"] {
   border-color: var(--ss-action) !important;
@@ -321,7 +349,7 @@ button[kind="secondary"] {
   letter-spacing: 0;
 }
 .ss-section-label {
-  margin: var(--ss-space-3) 0 0.38rem;
+  margin: var(--ss-space-section) 0 0.48rem;
   color: var(--ss-text-tertiary);
   font-size: 0.76rem;
   font-weight: 720;
@@ -336,13 +364,13 @@ button[kind="secondary"] {
 }
 .ss-control-frame {
   max-width: 66rem;
-  margin: 0.85rem auto var(--ss-space-2);
-  padding: 0.85rem 0 0.75rem;
+  margin: 0.95rem auto var(--ss-space-section);
+  padding: 0.95rem 0 0.85rem;
   border-top: 1px solid var(--ss-border);
   border-bottom: 1px solid var(--ss-border);
 }
 .ss-control-title {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--ss-space-control);
   color: var(--ss-text-tertiary);
   font-size: 0.76rem;
   font-weight: 720;
@@ -351,7 +379,7 @@ button[kind="secondary"] {
 .ss-chart-frame {
   max-width: 76rem;
   margin: 0 auto;
-  padding: 0.65rem 0 0.25rem;
+  padding: 0.75rem 0 0.35rem;
 }
 .ss-chart-frame canvas,
 .ss-chart-frame svg {
@@ -497,7 +525,7 @@ button[kind="secondary"] {
 .ss-read-guide,
 .ss-holdings-note {
   max-width: 54rem;
-  margin: 0.65rem 0 var(--ss-space-2);
+  margin: 0.75rem 0 var(--ss-space-section);
   color: var(--ss-text-secondary);
   font-size: 0.9rem;
   line-height: 1.45;
@@ -577,6 +605,27 @@ button[kind="secondary"] {
   color: var(--ss-text-secondary);
   font-size: 0.9rem;
   line-height: 1.45;
+}
+.ss-single-fund-focus {
+  padding: 0.68rem 0.82rem;
+  border: 1px solid var(--ss-border);
+  border-left: 4px solid var(--ss-action);
+  border-radius: var(--ss-radius);
+  background: var(--ss-surface-deep);
+}
+.ss-single-fund-focus strong,
+.ss-single-fund-focus span {
+  display: block;
+}
+.ss-single-fund-focus strong {
+  color: var(--ss-text-primary);
+  font-size: 0.92rem;
+}
+.ss-single-fund-focus span {
+  margin-top: 0.16rem;
+  color: var(--ss-text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.38;
 }
 .ss-method-badge {
   display: inline-flex;

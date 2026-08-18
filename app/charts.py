@@ -488,23 +488,23 @@ def sentiment_timeline_spec() -> dict:
                 ],
             },
             {
-                "height": 38,
+                "height": 44,
                 "layer": [
                     {
                         "mark": {
                             "type": "point",
                             "filled": True,
                             "shape": "square",
-                            "size": 22,
+                            "size": 34,
                             "color": COLORS["evidence"],
                         },
                         "encoding": {
                             "x": date_axis,
-                            "y": {"value": 18},
+                            "y": {"value": 21},
                             "opacity": {
                                 "field": "active_ticker_share",
                                 "type": "quantitative",
-                                "scale": {"domain": [0, 1], "range": [0.12, 0.95]},
+                                "scale": {"domain": [0, 1], "range": [0.28, 0.95]},
                                 "legend": None,
                             },
                             "tooltip": [

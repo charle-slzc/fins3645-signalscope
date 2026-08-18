@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from streamlit.testing.v1 import AppTest
 import pandas as pd
 
@@ -285,7 +287,26 @@ def test_evidence_curated_case_shortcuts_render_empirical_cases():
     attenuation_markdown = rendered_text(app)
     assert "Same news direction. Less portfolio movement." in attenuation_markdown
     assert "RealEstate / 2021-11-01" in attenuation_markdown
+    assert "Saved Minimum Variance attenuation case: RealEstate / 2021-11-01." in attenuation_markdown
+    assert "Saved realized sector-weight changes are available" not in attenuation_markdown
+    assert "primary allocation-effect bars are not shown" not in attenuation_markdown
     assert "confidence 0.340" in attenuation_markdown
+
+
+def test_signal_copy_matches_discrete_gold_mark_geometry():
+    app = open_stage(run_app(), "Signal")
+    text = rendered_text(app)
+
+    assert "Gold marks underneath show how much same-day evidence existed for each sector-date." in text
+    assert "Gold dots underneath" not in text
+
+
+def test_design_uses_global_chrome_safe_shell_spacing():
+    source = Path("app/design.py").read_text(encoding="utf-8")
+
+    assert "--ss-top-safe" in source
+    assert "env(safe-area-inset-top, 0px)" in source
+    assert "padding-top: calc(var(--ss-top-safe)" in source
 
 
 def test_curated_case_does_not_control_signal_after_manual_sector_change():

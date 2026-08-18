@@ -95,6 +95,7 @@ def css() -> str:
   --ss-family-crypto: #b8945a;
   --ss-family-combined: #6fa7bc;
   --ss-radius: 8px;
+  --ss-top-safe: clamp(3rem, 5.2vh, 4rem);
   --ss-space-1: 0.5rem;
   --ss-space-2: 1rem;
   --ss-space-3: 1.5rem;
@@ -110,7 +111,7 @@ def css() -> str:
 }
 .block-container {
   max-width: 78rem;
-  padding-top: 1.15rem;
+  padding-top: calc(var(--ss-top-safe) + env(safe-area-inset-top, 0px));
   padding-bottom: 2.5rem;
 }
 h1, h2, h3, h4, h5, h6,
@@ -1170,6 +1171,9 @@ button[kind="secondary"] {
   line-height: 1;
 }
 @media (max-width: 760px) {
+  :root {
+    --ss-top-safe: clamp(2.35rem, 4vh, 3rem);
+  }
   .block-container {
     padding-left: 1rem;
     padding-right: 1rem;

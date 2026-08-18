@@ -597,6 +597,10 @@ def render_evidence_page(startup_artifacts: StartupArtifacts, project_root: Path
     ]
     attenuation = matching_case.iloc[0] if not matching_case.empty else None
     if attenuation is not None:
+        st.caption(
+            f"Saved {ATTENUATION_BASE_METHOD} attenuation case: "
+            f"{selected_sector} / {selected_date}."
+        )
         effect_frame = allocation_effect_frame(row, attenuation)
         st.vega_lite_chart(effect_frame, charts.allocation_effect_spec(), width="stretch")
         st.caption(

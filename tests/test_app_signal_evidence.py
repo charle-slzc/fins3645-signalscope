@@ -231,8 +231,13 @@ def test_new_chart_specs_json_serialise_and_validate():
     timeline = charts.sentiment_timeline_spec()
     assert timeline["vconcat"][0]["layer"][1]["encoding"]["y"]["field"] == "sector_sentiment"
     availability = timeline["vconcat"][1]["layer"][0]
+    assert timeline["vconcat"][1]["height"] == 44
     assert availability["mark"]["type"] == "point"
+    assert availability["mark"]["shape"] == "square"
+    assert availability["mark"]["size"] == 34
+    assert availability["encoding"]["y"]["value"] == 21
     assert availability["encoding"]["opacity"]["field"] == "active_ticker_share"
+    assert availability["encoding"]["opacity"]["scale"]["range"] == [0.28, 0.95]
     assert availability["encoding"]["tooltip"][1]["field"] == "active_ticker_share"
     allocation = charts.allocation_effect_spec()
     assert allocation["layer"][1]["encoding"]["x"]["field"] == "effect"

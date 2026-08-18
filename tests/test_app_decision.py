@@ -269,6 +269,18 @@ def test_decision_narrative_grammar_direct_labels_and_active_chart_specs_are_val
     assert "latest saved snapshot" in narrative
     assert "overlapping selected pair" in narrative
 
+    overlapping_sleeves = (
+        sleeve("Equity / Equal Weight", 50.0),
+        sleeve("Combined / Equal Weight", 50.0),
+    )
+    _, _, _, _, overlapping_summary = build_summary(overlapping_sleeves)
+    overlapping_narrative = decision.decision_narrative(
+        overlapping_summary,
+        decision.pairwise_overlaps(weights(), overlapping_sleeves),
+    )
+    assert "shares 83.3% of its latest saved fund-weight profiles" in overlapping_narrative
+    assert "shares 83% of its latest saved fund-weight profiles" not in overlapping_narrative
+
     specs = [
         charts.decision_holdings_spec(),
         charts.decision_overlap_spec(),
@@ -349,6 +361,13 @@ def click_button_by_label(app: AppTest, label: str) -> AppTest:
         if button.label == label:
             return button.click().run(timeout=25)
     raise AssertionError(f"Button not found: {label}")
+
+
+def click_button_by_label_occurrence(app: AppTest, label: str, occurrence: int) -> AppTest:
+    matches = [button for button in app.button if button.label == label]
+    if len(matches) <= occurrence:
+        raise AssertionError(f"Button not found: {label} occurrence {occurrence}")
+    return matches[occurrence].click().run(timeout=25)
 
 
 def open_stage(app: AppTest, stage: str) -> AppTest:
@@ -451,6 +470,10 @@ def test_decision_three_funds_remove_and_navigation_paths():
     app = click_button_by_label(app, "Add fund sleeve")
     app = click_button_by_label(app, "Add fund sleeve")
     assert not app.exception
+    assert "Remove sleeve 1" not in button_labels(app)
+    assert "Remove sleeve 2" not in button_labels(app)
+    assert "Remove sleeve 3" not in button_labels(app)
+    assert button_labels(app).count("Remove") == 3
     app = selectbox_by_label(app, "Sleeve 3").select("Crypto / Minimum Variance").run(timeout=25)
     app = selectbox_by_label(app, "Sleeve 1").select("Combined / Maximum Sharpe").run(timeout=25)
     app = allocation_input(app, 1).set_value(40.0).run(timeout=25)
@@ -458,7 +481,7 @@ def test_decision_three_funds_remove_and_navigation_paths():
     app = allocation_input(app, 3).set_value(25.0).run(timeout=25)
     assert "Most overlapping pair" in rendered_text(app)
 
-    app = click_button_by_label(app, "Remove sleeve 3")
+    app = click_button_by_label_occurrence(app, "Remove", 2)
     assert not app.exception
     assert len([box for box in app.selectbox if box.label.startswith("Sleeve ")]) == 2
 

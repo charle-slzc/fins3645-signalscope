@@ -381,7 +381,7 @@ def decision_narrative(summary: StructuralSummary, overlaps: list[PairwiseOverla
         strongest = max(overlaps, key=lambda item: item.overlap)
         sentence += (
             f" The most overlapping selected pair shares "
-            f"{format_percent(strongest.overlap, 0)} of its latest saved fund-weight profiles."
+            f"{format_percent_one(strongest.overlap)} of its latest saved fund-weight profiles."
         )
     return sentence
 
@@ -462,7 +462,7 @@ def render_allocation_builder(metrics: pd.DataFrame) -> AllocationValidation:
     )
 
     for index, (label, allocation) in enumerate(zip(funds_state, allocations_state)):
-        row_cols = st.columns([1.45, 0.65, 0.42])
+        row_cols = st.columns([1.7, 0.55, 0.5])
         with row_cols[0]:
             label_options = _available_label_options(options, label, funds_state)
             if label not in label_options:
@@ -487,7 +487,7 @@ def render_allocation_builder(metrics: pd.DataFrame) -> AllocationValidation:
             allocations_state[index] = float(value)
         with row_cols[2]:
             st.write("")
-            if len(funds_state) > 1 and st.button(f"Remove sleeve {index + 1}", key=f"remove_decision_sleeve_{index}"):
+            if len(funds_state) > 1 and st.button("Remove", key=f"remove_decision_sleeve_{index}", width="stretch"):
                 funds_state.pop(index)
                 allocations_state.pop(index)
                 st.session_state[DECISION_FUNDS_KEY] = funds_state
@@ -581,9 +581,9 @@ def _render_overlap(overlaps: list[PairwiseOverlap]) -> None:
             f"""
 <div class="ss-overlap-insight">
   <strong>Most overlapping pair:</strong> {html.escape(strongest.fund_a)} and {html.escape(strongest.fund_b)}
-  share {format_percent(strongest.overlap, 0)} of their latest saved fund-weight profiles.<br>
+  share {format_percent_one(strongest.overlap)} of their latest saved fund-weight profiles.<br>
   <strong>Least overlapping pair:</strong> {html.escape(weakest.fund_a)} and {html.escape(weakest.fund_b)}
-  share {format_percent(weakest.overlap, 0)}.
+  share {format_percent_one(weakest.overlap)}.
 </div>
 """,
             unsafe_allow_html=True,

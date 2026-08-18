@@ -349,7 +349,7 @@ def render_signal_page(project_root: Path | None = None) -> None:
         charts.sentiment_timeline_spec(),
         width="stretch",
     )
-    st.caption("Blue shows sentiment direction. Gold dots underneath show how much same-day evidence existed for each sector-date.")
+    st.caption("Blue shows sentiment direction. Gold marks underneath show how much same-day evidence existed for each sector-date.")
 
     st.markdown(status_banner_html(selected_sector, selected_date, row), unsafe_allow_html=True)
     action_col, back_col, _ = st.columns([1.15, 1.1, 2.7])

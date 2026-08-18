@@ -60,7 +60,6 @@ def chart_config() -> dict:
 def risk_return_spec(
     x_domain: list[float] | None = None,
     y_domain: list[float] | None = None,
-    single_fund: bool = False,
 ) -> dict:
     x_scale = {"zero": False, "nice": True}
     y_scale = {"zero": False, "nice": True}
@@ -68,8 +67,6 @@ def risk_return_spec(
         x_scale = {"zero": False, "nice": False, "domain": x_domain}
     if y_domain is not None:
         y_scale = {"zero": False, "nice": False, "domain": y_domain}
-    selected_size = 180 if single_fund else 230
-    default_size = 95 if single_fund else 105
     point_encoding = {
         "x": {
             "field": "volatility_pct",
@@ -124,8 +121,11 @@ def risk_return_spec(
             },
         },
         "size": {
-            "condition": {"test": "datum.is_selected", "value": selected_size},
-            "value": default_size,
+            "condition": [
+                {"test": "datum.is_selected", "value": 230},
+                {"test": "datum.is_focus_match", "value": 138},
+            ],
+            "value": 82,
         },
         "stroke": {
             "condition": {"test": "datum.is_selected", "value": COLORS["action"]},
@@ -136,8 +136,11 @@ def risk_return_spec(
             "value": 1.1,
         },
         "opacity": {
-            "condition": {"test": "datum.is_selected", "value": 1.0},
-            "value": 0.74,
+            "condition": [
+                {"test": "datum.is_selected", "value": 1.0},
+                {"test": "datum.is_focus_match", "value": 0.94},
+            ],
+            "value": 0.18,
         },
         "tooltip": [
             {"field": "fund_label", "type": "nominal", "title": "Fund"},
@@ -191,10 +194,26 @@ def risk_return_spec(
             {
                 "transform": [{"filter": "datum.is_selected"}],
                 "mark": {
+                    "type": "point",
+                    "filled": False,
+                    "size": 360,
+                    "stroke": COLORS["action"],
+                    "strokeWidth": 4.5,
+                    "opacity": 1.0,
+                },
+                "encoding": {
+                    "x": point_encoding["x"],
+                    "y": point_encoding["y"],
+                    "shape": point_encoding["shape"],
+                },
+            },
+            {
+                "transform": [{"filter": "datum.is_selected"}],
+                "mark": {
                     "type": "text",
                     "align": "left",
                     "baseline": "middle",
-                    "dx": 12,
+                    "dx": 14,
                     "fontSize": 12,
                     "fontWeight": 700,
                     "color": COLORS["text_primary"],

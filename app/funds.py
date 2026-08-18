@@ -14,6 +14,7 @@ METHOD_ORDER = ("Equal Weight", "Minimum Variance", "Maximum Sharpe")
 FAMILY_FILTERS = ("All", "Equity", "Crypto", "Combined")
 METHOD_FILTERS = ("All",) + METHOD_ORDER
 DEFAULT_FUND = ("Combined", "Equal Weight")
+ALL_FOCUS = ("All", "All")
 
 CONCENTRATION_WEIGHT_THRESHOLD = 0.25
 EFFECTIVE_HOLDINGS_THRESHOLD = 5.0
@@ -148,22 +149,127 @@ def fund_key_id(key: FundKey) -> str:
     return f"{key.family}|{key.method}"
 
 
-def deterministic_filtered_selection(
+def fund_key_from_id(metrics: pd.DataFrame, key_id: str | None) -> FundKey | None:
+    if not key_id or "|" not in str(key_id):
+        return None
+    family, method = str(key_id).split("|", 1)
+    try:
+        return validate_fund_key(metrics, family, method)
+    except (KeyError, ValueError):
+        return None
+
+
+def focus_matches(metrics: pd.DataFrame, family_filter: str, method_filter: str) -> list[FundKey]:
+    filtered = filter_metrics(metrics, family_filter, method_filter)
+    if filtered.empty:
+        return []
+    return available_funds(filtered)
+
+
+def focus_includes_key(key: FundKey, family_filter: str, method_filter: str) -> bool:
+    family_matches = family_filter == "All" or key.family == canonical_family(family_filter)
+    method_matches = method_filter == "All" or key.method == method_filter
+    return family_matches and method_matches
+
+
+def focus_for_key(key: FundKey) -> tuple[str, str]:
+    return display_family(key.family), key.method
+
+
+def deterministic_focus_selection(
     metrics: pd.DataFrame,
     current: FundKey,
     family_filter: str,
     method_filter: str,
-) -> tuple[FundKey, pd.DataFrame]:
-    """Apply filters and preserve the current fund when it remains eligible."""
-    filtered = filter_metrics(metrics, family_filter, method_filter)
-    if filtered.empty:
-        filtered = metrics.copy().reset_index(drop=True)
-    options = available_funds(filtered)
-    if current in options:
-        return current, filtered
+) -> FundKey:
+    """Resolve selected fund after a focus-lens change.
+
+    If the focus has one match, that fund becomes selected. If the focus has
+    multiple matches, preserve the current selection when possible; otherwise
+    choose the first matching fund in canonical family/method order.
+    """
+    options = focus_matches(metrics, family_filter, method_filter)
     if not options:
-        raise KeyError("No funds match the current filters.")
-    return options[0], filtered
+        return current
+    if len(options) == 1:
+        return options[0]
+    if current in options:
+        return current
+    return options[0]
+
+
+def focus_match_count(metrics: pd.DataFrame, family_filter: str, method_filter: str) -> int:
+    return len(focus_matches(metrics, family_filter, method_filter))
+
+
+def focus_summary(
+    metrics: pd.DataFrame,
+    family_filter: str,
+    method_filter: str,
+) -> tuple[int, FundKey | None]:
+    matches = focus_matches(metrics, family_filter, method_filter)
+    if len(matches) == 1:
+        return 1, matches[0]
+    return len(matches), None
+
+
+def full_map_axis_domains(metrics: pd.DataFrame) -> tuple[list[float], list[float]]:
+    frame = comparison_frame(metrics, default_fund_key(metrics))
+    return (
+        _padded_domain(frame["volatility_pct"], lower_bound=0.0),
+        _padded_domain(frame["return_pct"]),
+    )
+
+
+def comparison_frame(
+    metrics: pd.DataFrame,
+    selected: FundKey,
+    family_filter: str = "All",
+    method_filter: str = "All",
+) -> pd.DataFrame:
+    frame = metrics.copy()
+    frame["family_label"] = frame["fund_family"].map(display_family)
+    frame["fund_label"] = frame["family_label"] + " / " + frame["method"]
+    frame["fund_key"] = frame["fund_family"] + "|" + frame["method"]
+    frame["is_selected"] = (frame["fund_family"] == selected.family) & (
+        frame["method"] == selected.method
+    )
+    frame["is_focus_match"] = [
+        focus_includes_key(FundKey(row.fund_family, row.method), family_filter, method_filter)
+        for row in frame.itertuples(index=False)
+    ]
+    frame["return_pct"] = frame["net_annualised_return"]
+    frame["volatility_pct"] = frame["net_annualised_volatility"]
+    frame["drawdown_pct"] = frame["net_max_drawdown"]
+    return frame
+
+
+def validate_comparison_frame(
+    frame: pd.DataFrame,
+    selected: FundKey,
+    expected_fund_count: int | None = 9,
+) -> None:
+    required = {"fund_family", "method", "fund_key", "is_selected", "is_focus_match"}
+    missing = required.difference(frame.columns)
+    if missing:
+        raise ValueError(f"Comparison frame missing columns: {sorted(missing)}")
+    if expected_fund_count is not None and len(frame) != expected_fund_count:
+        raise ValueError(
+            f"Comparison frame must contain {expected_fund_count} funds; found {len(frame)}."
+        )
+    if frame["fund_key"].duplicated().any():
+        raise ValueError("Comparison frame contains duplicate fund_key rows.")
+    expected_keys = frame["fund_family"].astype(str) + "|" + frame["method"].astype(str)
+    if not frame["fund_key"].astype(str).equals(expected_keys):
+        raise ValueError("Comparison frame fund_key values do not match family/method identities.")
+    for column in ("is_selected", "is_focus_match"):
+        if not frame[column].map(lambda value: isinstance(value, (bool, np.bool_))).all():
+            raise ValueError(f"Comparison frame {column} values must be boolean.")
+    selected_rows = frame[frame["is_selected"]]
+    if len(selected_rows) != 1:
+        raise ValueError("Comparison frame must contain exactly one selected fund.")
+    if str(selected_rows.iloc[0]["fund_key"]) != fund_key_id(selected):
+        raise ValueError("Selected row does not match the authoritative FundKey.")
 
 
 def _padded_domain(
@@ -191,30 +297,6 @@ def _padded_domain(
     if high <= low:
         high = low + floor * 2
     return [low, high]
-
-
-def risk_return_axis_domains(frame: pd.DataFrame) -> tuple[list[float] | None, list[float] | None]:
-    """Return adaptive domains for narrow filter states; leave full map unchanged."""
-    if len(frame) > 3:
-        return None, None
-    return (
-        _padded_domain(frame["volatility_pct"], lower_bound=0.0),
-        _padded_domain(frame["return_pct"]),
-    )
-
-
-def comparison_frame(metrics: pd.DataFrame, selected: FundKey) -> pd.DataFrame:
-    frame = metrics.copy()
-    frame["family_label"] = frame["fund_family"].map(display_family)
-    frame["fund_label"] = frame["family_label"] + " / " + frame["method"]
-    frame["fund_key"] = frame["fund_family"] + "|" + frame["method"]
-    frame["is_selected"] = (frame["fund_family"] == selected.family) & (
-        frame["method"] == selected.method
-    )
-    frame["return_pct"] = frame["net_annualised_return"]
-    frame["volatility_pct"] = frame["net_annualised_volatility"]
-    frame["drawdown_pct"] = frame["net_max_drawdown"]
-    return frame
 
 
 def _first_scalar(value: Any) -> str | None:

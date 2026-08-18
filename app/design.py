@@ -148,8 +148,7 @@ small {
 .ss-overlap-insight,
 .ss-decision-narrative,
 .ss-match-statement,
-.ss-survived,
-.ss-single-fund-focus {
+.ss-survived {
   margin-bottom: var(--ss-space-control);
 }
 button[kind="primary"] {
@@ -605,27 +604,6 @@ button[kind="secondary"] {
   color: var(--ss-text-secondary);
   font-size: 0.9rem;
   line-height: 1.45;
-}
-.ss-single-fund-focus {
-  padding: 0.68rem 0.82rem;
-  border: 1px solid var(--ss-border);
-  border-left: 4px solid var(--ss-action);
-  border-radius: var(--ss-radius);
-  background: var(--ss-surface-deep);
-}
-.ss-single-fund-focus strong,
-.ss-single-fund-focus span {
-  display: block;
-}
-.ss-single-fund-focus strong {
-  color: var(--ss-text-primary);
-  font-size: 0.92rem;
-}
-.ss-single-fund-focus span {
-  margin-top: 0.16rem;
-  color: var(--ss-text-secondary);
-  font-size: 0.86rem;
-  line-height: 1.38;
 }
 .ss-method-badge {
   display: inline-flex;

@@ -376,7 +376,7 @@ def open_stage(app: AppTest, stage: str) -> AppTest:
 
 def test_decision_initial_state_inherits_selected_fund_context():
     app = run_app()
-    app = selectbox_by_label(app, "Selected fund").select("Crypto / Equal Weight").run(timeout=20)
+    app = segmented_control_by_label(app, "Family").select("Crypto").run(timeout=20)
     assert not app.exception
 
     app = open_stage(app, "Decision")

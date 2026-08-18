@@ -56,24 +56,32 @@ def test_family_method_filters_are_composable_and_visible():
 def test_chart_input_is_non_empty_for_required_filter_states():
     metrics = pd.read_csv(project_root() / "results/tables/performance_metrics.csv")
     cases = [
-        ("All", "All", 9),
-        ("Equity", "All", 3),
-        ("Crypto", "All", 3),
-        ("Combined", "All", 3),
-        ("All", "Equal Weight", 3),
-        ("All", "Minimum Variance", 3),
-        ("All", "Maximum Sharpe", 3),
-        ("Combined", "Maximum Sharpe", 1),
+        ("All", "All", 9, funds.FundKey("Combined", "Equal Weight")),
+        ("Equity", "All", 3, funds.FundKey("Equity-only", "Equal Weight")),
+        ("Crypto", "All", 3, funds.FundKey("Crypto-only", "Equal Weight")),
+        ("Combined", "All", 3, funds.FundKey("Combined", "Equal Weight")),
+        ("All", "Equal Weight", 3, funds.FundKey("Combined", "Equal Weight")),
+        ("All", "Minimum Variance", 3, funds.FundKey("Equity-only", "Minimum Variance")),
+        ("All", "Maximum Sharpe", 3, funds.FundKey("Equity-only", "Maximum Sharpe")),
+        ("Crypto", "Equal Weight", 1, funds.FundKey("Crypto-only", "Equal Weight")),
+        ("Combined", "Maximum Sharpe", 1, funds.FundKey("Combined", "Maximum Sharpe")),
     ]
 
-    for family_filter, method_filter, expected_rows in cases:
-        filtered = funds.filter_metrics(metrics, family_filter, method_filter)
-        selected = funds.available_funds(filtered)[0]
-        chart_input = funds.comparison_frame(filtered, selected)
+    starting = funds.FundKey("Combined", "Equal Weight")
+    for family_filter, method_filter, expected_focus_matches, expected_selected in cases:
+        selected = funds.deterministic_focus_selection(
+            metrics, starting, family_filter, method_filter
+        )
+        chart_input = funds.comparison_frame(metrics, selected, family_filter, method_filter)
+        funds.validate_comparison_frame(chart_input, selected)
 
-        assert len(chart_input) == expected_rows
+        assert len(chart_input) == 9
         assert chart_input["is_selected"].sum() == 1
-        assert selected.label in set(chart_input["fund_label"])
+        assert chart_input["is_focus_match"].sum() == expected_focus_matches
+        assert selected == expected_selected
+        assert chart_input.loc[chart_input["is_selected"], "fund_key"].tolist() == [
+            funds.fund_key_id(expected_selected)
+        ]
         assert {"return_pct", "volatility_pct", "family_label", "method", "fund_key"}.issubset(
             chart_input.columns
         )
@@ -109,73 +117,97 @@ def test_comparison_frame_marks_selected_fund_and_stable_key():
 
     assert frame["fund_key"].tolist() == ["Combined|Equal Weight", "Combined|Maximum Sharpe"]
     assert frame["is_selected"].tolist() == [False, True]
+    assert frame["is_focus_match"].tolist() == [True, True]
 
 
-def test_filtered_selection_preserves_or_replaces_authoritative_key_deterministically():
+def test_focus_selection_preserves_or_replaces_authoritative_key_deterministically():
     metrics = pd.read_csv(project_root() / "results/tables/performance_metrics.csv")
 
     selected = funds.FundKey("Combined", "Equal Weight")
-    preserved, preserved_frame = funds.deterministic_filtered_selection(
+    preserved = funds.deterministic_focus_selection(
         metrics, selected, "All", "All"
     )
     assert preserved == selected
-    assert len(preserved_frame) == 9
 
-    replacement, replacement_frame = funds.deterministic_filtered_selection(
+    replacement = funds.deterministic_focus_selection(
         metrics, selected, "Crypto", "Equal Weight"
     )
     assert replacement == funds.FundKey("Crypto-only", "Equal Weight")
-    assert replacement_frame[["fund_family", "method"]].drop_duplicates().values.tolist() == [
-        ["Crypto-only", "Equal Weight"]
-    ]
 
-    retained, retained_frame = funds.deterministic_filtered_selection(
+    retained = funds.deterministic_focus_selection(
         metrics, funds.FundKey("Crypto-only", "Equal Weight"), "All", "All"
     )
     assert retained == funds.FundKey("Crypto-only", "Equal Weight")
-    assert len(retained_frame) == 9
+
+    first_equity = funds.deterministic_focus_selection(
+        metrics, funds.FundKey("Combined", "Maximum Sharpe"), "Equity", "All"
+    )
+    assert first_equity == funds.FundKey("Equity-only", "Equal Weight")
 
 
 def test_chart_frame_selected_flag_and_direct_label_source_follow_authoritative_key():
     metrics = pd.read_csv(project_root() / "results/tables/performance_metrics.csv")
     selected = funds.FundKey("Combined", "Equal Weight")
-    frame = funds.comparison_frame(funds.filter_metrics(metrics, "All", "All"), selected)
+    frame = funds.comparison_frame(metrics, selected, "Crypto", "Equal Weight")
 
     highlighted = frame[frame["is_selected"]]
+    direct_labels = frame.loc[frame["is_selected"], "fund_label"]
 
     assert len(frame) == 9
+    assert frame["is_focus_match"].sum() == 1
     assert highlighted["fund_key"].tolist() == [funds.fund_key_id(selected)]
-    assert highlighted["fund_label"].tolist() == ["Combined / Equal Weight"]
+    assert direct_labels.tolist() == ["Combined / Equal Weight"]
 
 
-def test_risk_return_axis_domains_are_adaptive_only_for_small_filter_states():
+def test_full_map_axis_domains_are_stable_for_all_focus_states():
     metrics = pd.read_csv(project_root() / "results/tables/performance_metrics.csv")
 
-    full_frame = funds.comparison_frame(metrics, funds.FundKey("Combined", "Equal Weight"))
-    assert funds.risk_return_axis_domains(full_frame) == (None, None)
-
-    single_frame = funds.comparison_frame(
-        funds.filter_metrics(metrics, "Crypto", "Equal Weight"),
-        funds.FundKey("Crypto-only", "Equal Weight"),
+    expected_domains = funds.full_map_axis_domains(metrics)
+    cases = (
+        ("All", "All"),
+        ("Equity", "All"),
+        ("All", "Minimum Variance"),
+        ("Crypto", "Equal Weight"),
+        ("Combined", "Maximum Sharpe"),
     )
-    x_domain, y_domain = funds.risk_return_axis_domains(single_frame)
-    row = single_frame.iloc[0]
-    assert len(single_frame) == 1
-    assert x_domain[0] < row["volatility_pct"] < x_domain[1]
-    assert y_domain[0] < row["return_pct"] < y_domain[1]
-    assert x_domain[1] - x_domain[0] > 0.02
-    assert y_domain[1] - y_domain[0] > 0.02
 
-    small_frame = funds.comparison_frame(
-        funds.filter_metrics(metrics, "Combined", "All"),
-        funds.FundKey("Combined", "Maximum Sharpe"),
-    )
-    x_domain, y_domain = funds.risk_return_axis_domains(small_frame)
-    assert len(small_frame) == 3
-    assert x_domain[0] <= small_frame["volatility_pct"].min()
-    assert x_domain[1] >= small_frame["volatility_pct"].max()
-    assert y_domain[0] <= small_frame["return_pct"].min()
-    assert y_domain[1] >= small_frame["return_pct"].max()
+    for family_filter, method_filter in cases:
+        selected = funds.deterministic_focus_selection(
+            metrics, funds.FundKey("Combined", "Equal Weight"), family_filter, method_filter
+        )
+        frame = funds.comparison_frame(metrics, selected, family_filter, method_filter)
+        funds.validate_comparison_frame(frame, selected)
+        x_domain, y_domain = expected_domains
+
+        assert len(frame) == 9
+        assert x_domain[0] <= frame["volatility_pct"].min()
+        assert x_domain[1] >= frame["volatility_pct"].max()
+        assert y_domain[0] <= frame["return_pct"].min()
+        assert y_domain[1] >= frame["return_pct"].max()
+        assert funds.full_map_axis_domains(metrics) == expected_domains
+
+
+def test_validate_comparison_frame_rejects_broken_visual_truth():
+    metrics = pd.read_csv(project_root() / "results/tables/performance_metrics.csv")
+    selected = funds.FundKey("Combined", "Equal Weight")
+    frame = funds.comparison_frame(metrics, selected)
+
+    funds.validate_comparison_frame(frame, selected)
+
+    duplicate = pd.concat([frame, frame.iloc[[0]]], ignore_index=True)
+    with pytest.raises(ValueError, match="9 funds"):
+        funds.validate_comparison_frame(duplicate, selected)
+
+    no_selected = frame.copy()
+    no_selected["is_selected"] = False
+    with pytest.raises(ValueError, match="exactly one selected"):
+        funds.validate_comparison_frame(no_selected, selected)
+
+    bad_focus = frame.copy()
+    bad_focus["is_focus_match"] = bad_focus["is_focus_match"].astype(object)
+    bad_focus.loc[0, "is_focus_match"] = "yes"
+    with pytest.raises(ValueError, match="boolean"):
+        funds.validate_comparison_frame(bad_focus, selected)
 
 
 def test_chart_selection_event_parsing_handles_native_shapes():
@@ -237,11 +269,10 @@ def test_risk_return_spec_defines_native_selection_and_dark_labels():
     }
 
 
-def test_risk_return_spec_accepts_adaptive_domains_and_single_fund_size():
+def test_risk_return_spec_accepts_stable_full_map_domains_and_focus_state():
     spec = charts.risk_return_spec(
         x_domain=[0.75, 0.87],
         y_domain=[0.29, 0.39],
-        single_fund=True,
     )
 
     json.dumps(spec)
@@ -257,7 +288,22 @@ def test_risk_return_spec_accepts_adaptive_domains_and_single_fund_size():
         "nice": False,
         "domain": [0.29, 0.39],
     }
-    assert point_encoding["size"]["condition"]["value"] == 180
+    assert point_encoding["size"]["condition"]["test"] == "datum.is_focus_match"
+    assert point_encoding["opacity"]["condition"][0]["test"] == "datum.is_selected"
+    assert point_encoding["opacity"]["condition"][1]["test"] == "datum.is_focus_match"
+
+    # Selection styling is a dedicated app-owned overlay, not Vega's internal
+    # point-selection appearance.
+    selected_overlay = spec["layer"][1]
+    assert selected_overlay["transform"] == [{"filter": "datum.is_selected"}]
+    assert selected_overlay["mark"]["filled"] is False
+    assert selected_overlay["mark"]["stroke"]
+    assert selected_overlay["mark"]["strokeWidth"] >= 4.0
+    assert selected_overlay["mark"]["size"] > 300
+
+    label_layer = spec["layer"][2]
+    assert label_layer["transform"] == [{"filter": "datum.is_selected"}]
+    assert label_layer["encoding"]["text"]["field"] == "fund_label"
 
 
 def test_growth_drawdown_and_holdings_axes_use_non_ambiguous_labels():

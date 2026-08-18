@@ -182,3 +182,122 @@ Signal, Evidence, Decision, and Challenge are also required.
 This is a deployment patch. After local verification, commit the changed app,
 test, and AI-log files and push the standalone `fins3645-signalscope` repository.
 Do not push automatically from the AI session without explicit instruction.
+
+## Fund Interaction Simplification and State Red-Team
+
+The first live issue was a split selected-fund state: the visible dropdown could
+show one fund while the risk-return map still highlighted and labelled another.
+The first patch improved local synchronization but did not solve the hosted
+interaction model cleanly enough, because it still kept a dropdown, destructive
+filters, adaptive one-result axes, and chart selection state close to the
+authoritative app state.
+
+This pass removes the Selected fund dropdown. Family and Method now act only as
+focus lenses: they emphasise matching funds while preserving the full nine-fund
+risk-return map for context. The map is the primary exploratory fund selector.
+
+The authoritative selected fund remains the app-owned `FundKey` represented by
+`selected_fund_family` and `selected_fund_method`. All selected-fund rendering
+derives from that identity: the chart selected flag, direct label, selected
+context, Relative Position, Open fact sheet, Risk page, and Decision starting
+sleeve when Decision has not yet initialized its own allocation state.
+
+The comparison frame is always built from the full `performance_metrics`
+universe. It contains nine rows for `All / All`, family focus, method focus, and
+unique Family + Method focus. Each row carries `is_selected` and
+`is_focus_match`; selected styling wins even when the selected fund is outside
+the active focus. Axes use the same full-map domains for every focus state.
+
+Unique focus states select the matching fund deterministically. Multi-match
+focus states preserve the current selected fund when it remains in focus;
+otherwise they select the first matching fund in the canonical family/method
+order. Returning to `All / All` preserves the current valid selected fund.
+
+Vega selection state is now treated only as an input event. A chart click is
+converted to `FundKey`, persisted into app-owned state, and followed by a rerun.
+The visual highlight after rerun comes from `datum.is_selected`, not from Vega's
+selection predicate. A stable event identity is stored after a click is
+processed so the same persisted browser event cannot be replayed repeatedly.
+Focus-control changes also suppress chart-event processing during that rerun so
+a stale map event cannot immediately undo a newly resolved focus selection.
+
+Dead Fund interaction architecture removed in this pass:
+
+- Selected fund dropdown and its label mirror state.
+- Dropdown reconciliation and dropdown-precedence rules.
+- Filtered chart universe.
+- Single-result focus mode and one-point explanatory box.
+- Adaptive-axis helper references.
+- Interrupted `validate_comparison_frame()` fragment that referenced undefined
+  `options` and `filtered`.
+
+Risk continuity remains through the same durable `FundKey` keys. Opening the
+fact sheet after selecting `Crypto / Equal Weight` or `Combined / Maximum
+Sharpe` through focus lenses lands on the matching Risk fact sheet. Returning
+from Risk to Fund preserves the selected point and selected context.
+
+Decision continuity remains intentionally one-way on initialization. If Decision
+has no user-edited allocation state, its first sleeve inherits the latest Fund
+selection. Once Decision owns `decision_funds` and `decision_allocations`, later
+Fund selection changes do not overwrite the user's allocation.
+
+Cross-page state red-team:
+
+- Risk consumes the same durable `FundKey` and has no separate selected-fund
+  widget state.
+- Signal uses pending/change keys for sector, period, and date updates; curated
+  Evidence cases are cleared on manual Signal changes.
+- Evidence uses pending context for Signal/Evidence handoff and validates date
+  availability when sector/date widgets change.
+- Decision owns allocation state after first initialization and validates sleeve
+  labels against the saved fund universe.
+- Challenge has no persistent interactive selector state beyond navigation.
+
+No high-severity cross-page state defect was found outside Fund during this
+pass.
+
+Spacing changes from the earlier live patch were preserved. Removing the
+dropdown leaves a compact Fund flow: focus lenses, risk-return map, selected
+context with Open fact sheet, then Relative Position. No random blank spacer
+rows were added.
+
+Tests updated or added for this pass cover:
+
+- Fresh nine-row comparison frame with the default selected fund highlighted.
+- Nine-row map preservation for family, method, and unique focus states.
+- Focus-match counts for `All / All`, family lenses, method lenses, and unique
+  Family + Method lenses.
+- Unique focus auto-selection for `Crypto / Equal Weight` and
+  `Combined / Maximum Sharpe`.
+- `All / All` preserving the current selected fund.
+- Chart event parsing and consumed-event stale protection.
+- Selected row and direct-label source deriving from authoritative `FundKey`.
+- Open fact sheet and Risk continuity.
+- Decision initial inheritance and non-overwrite after user allocation edits.
+
+Local verification for this pass:
+
+```text
+python -m pytest -q
+121 passed
+
+python scripts/check_handin.py
+22 checks passed
+1 reminder: no report/report.pdf yet - author it in Word and export to PDF
+
+git diff --check -- fins2026/z5367955_projectB
+no output
+
+git status --short -- fins2026/z5367955_projectB/src fins2026/z5367955_projectB/results
+no output
+
+bounded Streamlit HTTP smoke
+HTTP_STATUS=200
+
+AppTest all six stages
+2 passed for explicit all-stage smoke tests
+```
+
+Hosted manual verification is still required. Do not claim the hosted
+chart-click behavior is fixed until a browser click on the deployed app has
+been tested after deployment.

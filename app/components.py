@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 
 import streamlit as st
 
@@ -18,17 +19,19 @@ from app.funds import (
     METHOD_FILTERS,
     ConcentrationSummary,
     FundKey,
-    available_funds,
     comparison_frame,
     concentration_summary,
-    deterministic_filtered_selection,
+    deterministic_focus_selection,
     default_fund_key,
     display_family,
     effective_holdings,
     estimation_context,
     family_caveat,
-    filter_metrics,
     first_live_row,
+    focus_includes_key,
+    focus_summary,
+    full_map_axis_domains,
+    fund_key_id,
     fund_key_from_selection_event,
     format_multiple,
     format_percent,
@@ -42,22 +45,21 @@ from app.funds import (
     relative_peer_metrics,
     rebalance_methodology_lines,
     representative_holdings,
-    risk_return_axis_domains,
     return_series,
     validate_fund_key,
+    validate_comparison_frame,
 )
 from app.navigation import set_view
 
 
 SELECTED_FUND_FAMILY_KEY = "selected_fund_family"
 SELECTED_FUND_METHOD_KEY = "selected_fund_method"
-SELECTED_FUND_LABEL_KEY = "selected_fund_label"
 FAMILY_FILTER_KEY = "fund_family_filter"
 METHOD_FILTER_KEY = "fund_method_filter"
-FILTER_SNAPSHOT_KEY = "_fund_filter_snapshot"
-FUND_CHART_VERSION_KEY = "_fund_chart_version"
+FOCUS_SNAPSHOT_KEY = "_fund_focus_snapshot"
 FUND_CHANGE_SOURCE_KEY = "_fund_change_source"
-FUND_CHART_KEY_PREFIX = "risk_return_map"
+FUND_CHART_KEY = "risk_return_map"
+LAST_FUND_CHART_EVENT_KEY = "_last_fund_chart_event"
 
 
 def install_design_system() -> None:
@@ -205,56 +207,96 @@ def selected_fund(metrics) -> FundKey:
     return key
 
 
-def set_selected_fund(key: FundKey, source: str = "system", sync_label: bool = True) -> None:
+def set_selected_fund(key: FundKey, source: str = "system") -> None:
     st.session_state[SELECTED_FUND_FAMILY_KEY] = key.family
     st.session_state[SELECTED_FUND_METHOD_KEY] = key.method
-    if sync_label:
-        st.session_state[SELECTED_FUND_LABEL_KEY] = key.label
     st.session_state[FUND_CHANGE_SOURCE_KEY] = source
 
 
 def current_chart_key() -> str:
-    version = int(st.session_state.get(FUND_CHART_VERSION_KEY, 0))
-    return f"{FUND_CHART_KEY_PREFIX}_{version}"
+    return FUND_CHART_KEY
 
 
-def reset_chart_selection_state() -> None:
-    st.session_state[FUND_CHART_VERSION_KEY] = int(st.session_state.get(FUND_CHART_VERSION_KEY, 0)) + 1
+def fund_chart_instance_key(
+    selected: FundKey,
+    family_focus: str,
+    method_focus: str,
+) -> str:
+    """Return a fresh browser chart identity for each authoritative Fund state.
+
+    Streamlit/Vega may preserve browser-side selection state for a keyed chart
+    across reruns. Including the app-owned selected FundKey and active focus
+    lenses in the component key forces a clean chart instance whenever those
+    states change, so stale Vega state cannot keep an old visual highlight.
+    """
+    return (
+        f"{FUND_CHART_KEY}::"
+        f"{fund_key_id(selected)}::"
+        f"{family_focus}::{method_focus}"
+    )
+
+
+def _chart_event_payload(event) -> dict:
+    if event is None:
+        return {}
+    if isinstance(event, dict):
+        return event
+    if hasattr(event, "to_dict"):
+        maybe = event.to_dict()
+        return maybe if isinstance(maybe, dict) else {}
+    selection = getattr(event, "selection", None)
+    if isinstance(selection, dict):
+        return {"selection": selection}
+    return {}
+
+
+def chart_event_identity(event, clicked_key: FundKey | None) -> str | None:
+    if clicked_key is None:
+        return None
+    payload = _chart_event_payload(event)
+    try:
+        encoded = json.dumps(payload, sort_keys=True, default=str)
+    except TypeError:
+        encoded = repr(payload)
+    return f"{fund_key_id(clicked_key)}|{encoded}"
 
 
 def sync_selected_fund_from_chart(metrics) -> bool:
     event = st.session_state.get(current_chart_key())
     key = fund_key_from_selection_event(event, metrics, charts.FUND_SELECTION_NAME)
-    if key is None:
-        return False
     previous = selected_fund(metrics)
-    if key == previous:
+    identity = chart_event_identity(event, key)
+    if not chart_click_should_update(
+        clicked_key=key,
+        selected=previous,
+        event_identity=identity,
+        last_event_identity=st.session_state.get(LAST_FUND_CHART_EVENT_KEY),
+    ):
         return False
     set_selected_fund(key, source="chart")
+    st.session_state[LAST_FUND_CHART_EVENT_KEY] = identity
     return True
 
 
 def chart_click_should_update(
     clicked_key: FundKey | None,
     selected: FundKey,
-    dropdown_changed: bool,
-    filter_changed: bool,
+    event_identity: str | None,
+    last_event_identity: str | None,
+    focus_changed: bool = False,
 ) -> bool:
     return (
         clicked_key is not None
         and clicked_key != selected
-        and not dropdown_changed
-        and not filter_changed
+        and event_identity is not None
+        and event_identity != last_event_identity
+        and not focus_changed
     )
 
 
-def fund_options_from_metrics(metrics) -> list[FundKey]:
-    return available_funds(metrics)
-
-
-def render_fund_controls(metrics) -> tuple[FundKey, object, bool, bool]:
+def render_fund_controls(metrics) -> tuple[FundKey, str, str, bool]:
     current = selected_fund(metrics)
-    st.markdown('<div class="ss-control-title">Choose a fund universe</div>', unsafe_allow_html=True)
+    st.markdown('<div class="ss-control-title">Focus lenses</div>', unsafe_allow_html=True)
     family_col, method_col = st.columns(2)
     with family_col:
         family_kwargs = {}
@@ -280,65 +322,13 @@ def render_fund_controls(metrics) -> tuple[FundKey, object, bool, bool]:
         )
 
     filter_state = (family_filter or "All", method_filter or "All")
-    previous_filter_state = st.session_state.get(FILTER_SNAPSHOT_KEY)
-    filter_changed = previous_filter_state is not None and filter_state != previous_filter_state
-    st.session_state[FILTER_SNAPSHOT_KEY] = filter_state
-
-    filtered = filter_metrics(metrics, *filter_state)
-    if filtered.empty:
-        st.warning("No funds match the current filters. Showing all funds instead.")
-        filtered = metrics.copy().reset_index(drop=True)
-
-    current, filtered = deterministic_filtered_selection(metrics, current, *filter_state)
-    if current != selected_fund(metrics):
-        set_selected_fund(current, source="filter")
-        filter_changed = True
-    elif filter_changed:
-        set_selected_fund(current, source="filter")
-
-    if filter_changed:
-        reset_chart_selection_state()
-
-    options = fund_options_from_metrics(filtered)
-
-    labels = [option.label for option in options]
-    pre_widget_label = st.session_state.get(SELECTED_FUND_LABEL_KEY)
-    pending_dropdown_changed = False
-    if pre_widget_label in labels and pre_widget_label != current.label:
-        current = options[labels.index(pre_widget_label)]
-        set_selected_fund(current, source="dropdown", sync_label=False)
-        reset_chart_selection_state()
-        pending_dropdown_changed = True
-    elif pre_widget_label != current.label:
-        st.session_state[SELECTED_FUND_LABEL_KEY] = current.label
-
-    selected_col, action_col = st.columns([2.2, 0.95])
-    with selected_col:
-        selected_label = st.selectbox(
-            "Selected fund",
-            labels,
-            key=SELECTED_FUND_LABEL_KEY,
-            help="The selected fund is highlighted in Fund and opens in Risk.",
-        )
-    selected_index = labels.index(selected_label)
-    selected = options[selected_index]
-    dropdown_changed = pending_dropdown_changed or selected != current
-    if dropdown_changed:
-        set_selected_fund(selected, source="dropdown", sync_label=False)
-        if selected != current:
-            reset_chart_selection_state()
-    else:
-        set_selected_fund(
-            selected,
-            source=st.session_state.get(FUND_CHANGE_SOURCE_KEY, "system"),
-            sync_label=False,
-        )
-    with action_col:
-        st.write("")
-        if st.button("Open fact sheet", type="primary", width="stretch"):
-            set_view("Risk")
-            st.rerun()
-    return selected, filtered, dropdown_changed, filter_changed
+    previous_focus_state = st.session_state.get(FOCUS_SNAPSHOT_KEY)
+    focus_changed = previous_focus_state is not None and filter_state != previous_focus_state
+    st.session_state[FOCUS_SNAPSHOT_KEY] = filter_state
+    resolved = deterministic_focus_selection(metrics, current, *filter_state)
+    if resolved != current:
+        set_selected_fund(resolved, source="focus")
+    return selected_fund(metrics), filter_state[0], filter_state[1], focus_changed
 
 
 def render_metric_interpretation() -> None:
@@ -416,51 +406,58 @@ def render_fund_shell(artifacts: StartupArtifacts) -> None:
     _, control_area, _ = st.columns([0.06, 0.88, 0.06])
     with control_area:
         st.markdown('<div class="ss-control-frame">', unsafe_allow_html=True)
-        selected, filtered, dropdown_changed, filter_changed = render_fund_controls(metrics)
+        selected, family_focus, method_focus, focus_changed = render_fund_controls(metrics)
         st.markdown("</div>", unsafe_allow_html=True)
 
-    chart_frame = comparison_frame(filtered, selected)
-    selected_row = chart_frame[chart_frame["is_selected"]].iloc[0]
-    single_fund = len(chart_frame) == 1
-    x_domain, y_domain = risk_return_axis_domains(chart_frame)
+    chart_frame = comparison_frame(metrics, selected, family_focus, method_focus)
+    validate_comparison_frame(chart_frame, selected)
+    x_domain, y_domain = full_map_axis_domains(metrics)
     render_section_label("Risk-return map")
     st.markdown('<div class="ss-chart-frame">', unsafe_allow_html=True)
-    focus_label = st.session_state.get(FAMILY_FILTER_KEY, "All") or "All"
-    method_focus = st.session_state.get(METHOD_FILTER_KEY, "All") or "All"
+    match_count, unique_match = focus_summary(metrics, family_focus, method_focus)
     st.caption(
-        f"Selected: {selected.label}. Showing Family filter {focus_label} and Method filter "
-        f"{method_focus}. Filters change the view only, not the saved backtest."
+        "Focus controls emphasise matching funds while preserving all nine funds for context."
     )
-    if single_fund:
-        return_text = format_percent(float(selected_row["return_pct"]))
-        volatility_text = format_percent(float(selected_row["volatility_pct"]))
-        st.markdown(
-            f"""
-<div class="ss-single-fund-focus">
-  <strong>One fund matches the active filters.</strong>
-  <span>{html.escape(selected.label)}: annualised historical OOS return {return_text};
-  annualised volatility {volatility_text}.</span>
-</div>
-""",
-            unsafe_allow_html=True,
+    if unique_match is not None:
+        st.caption(f"{unique_match.label} is the only fund matching the active focus.")
+    elif focus_includes_key(selected, family_focus, method_focus):
+        st.caption(f"Selected: {selected.label}. Active focus matches {match_count} funds.")
+    else:
+        st.caption(
+            f"Selected: {selected.label}. The selected point is outside the active focus; "
+            "focus-matching points remain emphasised."
         )
     chart_event = st.vega_lite_chart(
         chart_frame,
         charts.risk_return_spec(
             x_domain=x_domain,
             y_domain=y_domain,
-            single_fund=single_fund,
         ),
         width="stretch",
-        key=current_chart_key(),
+        key=fund_chart_instance_key(selected, family_focus, method_focus),
         on_select="rerun",
         selection_mode=charts.FUND_SELECTION_NAME,
     )
     clicked_key = fund_key_from_selection_event(chart_event, metrics, charts.FUND_SELECTION_NAME)
-    if chart_click_should_update(clicked_key, selected, dropdown_changed, filter_changed):
-        set_selected_fund(clicked_key, source="chart", sync_label=False)
+    event_identity = chart_event_identity(chart_event, clicked_key)
+    if chart_click_should_update(
+        clicked_key=clicked_key,
+        selected=selected,
+        event_identity=event_identity,
+        last_event_identity=st.session_state.get(LAST_FUND_CHART_EVENT_KEY),
+        focus_changed=focus_changed,
+    ):
+        st.session_state[LAST_FUND_CHART_EVENT_KEY] = event_identity
+        set_selected_fund(clicked_key, source="chart")
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
+    selected_cols = st.columns([1.6, 0.72, 2.4])
+    with selected_cols[0]:
+        st.markdown(f"**Selected:** {selected.label}")
+    with selected_cols[1]:
+        if st.button("Open fact sheet", type="primary", width="stretch"):
+            set_view("Risk")
+            st.rerun()
     st.markdown(
         '<p class="ss-read-guide">Read the map as a tradeoff between historical OOS return and annualised volatility. '
         'The highlighted point is selected for inspection; upper-right is not automatically better because drawdown, turnover, and concentration also matter.</p>',

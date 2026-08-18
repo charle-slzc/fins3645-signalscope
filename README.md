@@ -1,46 +1,130 @@
-# FinTech Project - Part B
+# SignalScope
 
-> FIRST: rename this folder to <yourZID>_projectB (for example z1234567_projectB)
-> and move it into fins-agent/fins2026/. The folder name carrying your zID is your
-> submission.
+See the signal. Inspect the evidence.
 
-Part B: funds, sentiment, and the app (DFF Stations 3-4). This folder is also your
-public GitHub repository; the app entrypoint is streamlit_app.py at the root.
+SignalScope is an evidence-first multi-asset portfolio research product for
+FINS3645 Project B. It combines systematic equity portfolios, systematic crypto
+portfolios, combined equity + crypto portfolios, sector news sentiment, evidence
+confidence, portfolio look-through, and model falsification in one Streamlit
+product.
 
-## How to run
+The product is built around a deliberately skeptical research conclusion:
+SignalScope did not find evidence that generic headline sentiment should replace
+price-based portfolio construction. The Confidence Lens is therefore positioned
+as an evidence-aware signal-governance layer, not an alpha engine, forecast model,
+or recommendation engine. Matched-shrinkage falsification showed that a simpler
+constant control reproduced much of the economic shrinkage effect, while dynamic
+Confidence retained value in deciding where signals were muted or preserved.
 
-    pip install -r requirements.txt -r requirements-dev.txt   # dev adds nltk (VADER)
-    python scripts/run_part_b.py            # reproduces your results into results/
-    streamlit run streamlit_app.py          # runs the app locally
+## Product Journey
 
-Load raw data through src/data_access.py (see context/DATA_GUIDE.md); never commit
-raw data. The deployed app, by contrast, reads your precomputed artifacts from
-results/ - those ARE committed.
+- **Fund**: compare systematic Equity, Crypto, and Combined funds.
+- **Risk**: inspect fact sheets, holdings, concentration, turnover, and exposure.
+- **Signal**: inspect standalone sector news sentiment over time.
+- **Evidence**: separate sentiment direction from breadth and agreement of evidence.
+- **Decision**: allocate across fund sleeves and inspect underlying look-through.
+- **Challenge**: test whether the Confidence Lens earns its added complexity.
 
-## What is here
+## Method Snapshot
 
-- streamlit_app.py    the app entrypoint (repo root)
-- .streamlit/         app config
-- PROJECT_BRIEF.md    the full assignment brief for your course (read this first)
-- src/                your code (data_access is provided; portfolios/sentiment/fusion are yours)
-- scripts/            runnable scripts that reproduce your results
-- results/            your outputs: figures in results/figures/, tables in results/tables/, app data artifacts in results/data/
-- context/            provided data guide and project context (do not edit)
-- report/             your report - see report/OUTLINE.md (author in Word, submit report.pdf)
-- ai/                 your prompt logs and AI notes
-- requirements-dev.txt build/repro-only deps (nltk); keep them out of the deployed app
-- AGENTS.md / CLAUDE.md   replace the stub for your tool (you need just one) with your own
+- Equity funds use a 252-observation native equity estimation window.
+- Crypto funds use a 365-observation native crypto estimation window.
+- Combined funds use 252 common equity-calendar observations.
+- Rebalancing is monthly.
+- Portfolios are long-only, fully invested, and use no leverage.
+- Risk-free rate is 0%.
+- Transaction cost is 10 bps per dollar of turnover.
+- Sentiment used for trading is lagged by at least one trading day.
+- Equal Weight is the benchmark.
+- Minimum Variance and Maximum Sharpe are the optimisation methods.
 
-## Deploy + hand in
+## Run The App
 
-This folder is its own GitHub repo, independent of fins-agent. Your AI agent can run
-the check and push the repo; the browser deploy is yours (it needs your login). See
-PROJECT_BRIEF.md Appendix D and docs/STUDENT_DEPLOY.md (in this folder). In short:
+Use the Project B folder as the repository root. The app was tested with Python
+3.13.13 and Streamlit 1.58.0.
 
-    python scripts/check_handin.py        # your agent can run this
-    # commit your precomputed app artifacts under results/ (the app reads them)
-    # git init in this folder, then push the contents to a NEW private GitHub repo
+Windows PowerShell:
 
-Then YOU connect the repo on share.streamlit.io (entrypoint streamlit_app.py). At
-hand-in, make the repo PUBLIC, submit the live URL + repo link, and also zip this
-whole folder and upload the zip to Moodle.
+```powershell
+python -m pip install -r requirements.txt
+python -m streamlit run streamlit_app.py
+```
+
+The Streamlit entrypoint is:
+
+```text
+streamlit_app.py
+```
+
+## Reproduce The Analysis
+
+Install both runtime and build dependencies before reproducing saved artifacts:
+
+```powershell
+python -m pip install -r requirements.txt -r requirements-dev.txt
+python scripts/run_part_b.py
+```
+
+The reproducible build scripts are:
+
+- `scripts/run_part_b.py`: Station 3 portfolios, sentiment artifacts, Confidence
+  Lens artifacts, and primary saved outputs.
+- `scripts/run_phase2c.py`: matched-shrinkage placebo and falsification outputs.
+- `scripts/check_handin.py`: mechanical submission and deployment checks.
+
+## Precomputed App Boundary
+
+The hosted Streamlit app reads precomputed saved artifacts from `results/`.
+It does not run:
+
+- portfolio optimisation;
+- historical backtests;
+- VADER scoring;
+- NLTK;
+- raw-data API access;
+- custom Decision backtests.
+
+This boundary is deliberate: it keeps deployment responsive, preserves the frozen
+methodology, and makes the app reproducible from committed artifacts rather than
+from hidden runtime computation.
+
+The headline-level file `results/data/headline_sentiment_scores.csv` is a
+research/audit artifact. It is about 45.3 MB, is never startup-loaded, is never
+lazy-loaded, and is explicitly denied by the app data registry.
+
+## Deployment
+
+Recommended deployment layout: push the contents of this Project B folder as its
+own repository root. In that layout, `.streamlit/config.toml`, `requirements.txt`,
+and `streamlit_app.py` all live at the repository root.
+
+Streamlit Community Cloud fields:
+
+- Main file: `streamlit_app.py`
+- Python version: select Python 3.13 in Advanced settings
+- Secrets: none required
+
+If the app is deployed from a larger parent repository instead, keep in mind that
+Community Cloud runs from the repository root and only one `.streamlit/config.toml`
+is used. The Project B folder is therefore the safer deployment root.
+
+## Project Contents
+
+- `streamlit_app.py`: thin Streamlit entrypoint.
+- `.streamlit/`: Streamlit theme and server configuration.
+- `app/`: Streamlit views, chart specs, data registry, and UI helpers.
+- `src/`: analytical source used to build saved outputs.
+- `scripts/`: reproducible build and submission-check scripts.
+- `results/`: committed precomputed artifacts used by the app and report.
+- `tests/`: analytical and Streamlit AppTest checks.
+- `ai/`: AI workflow logs.
+- `planning/`: frozen methodology and product specifications.
+- `report/`: report planning and final report location.
+
+## Rubric Traceability
+
+SignalScope visibly includes Equity, Crypto, and Combined funds; an Equal Weight
+benchmark; Minimum Variance and Maximum Sharpe optimisation; walk-forward
+out-of-sample methodology; transaction costs; sector sentiment; the Evidence
+Lens; allocation across funds; model challenge/falsification; and a Streamlit
+app ready for public deployment after final checks.
